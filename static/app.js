@@ -458,7 +458,7 @@ function setupPlayer() {
   const p = $("#player");
   p.hidden = false;
   if (!meeting.audio_file) {
-    p.append(h("div", { class: "no-audio" }, "This sample has no recording yet. Stamps open the transcript at that moment. Run scripts/make_demo_audio.py to voice it with Bulbul."));
+    p.append(h("div", { class: "no-audio" }, "This sample meeting has no recording. Click any time stamp to jump to that line in the transcript."));
     document.body.style.setProperty("--player-h", "64px");
     return;
   }
