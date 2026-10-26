@@ -116,6 +116,16 @@ class SarvamService:
             usage = getattr(resp, "usage", None)
             print(f"[sabhasaar] 105B reply: {len(content)} chars, reasoning {len(reasoning)} chars, "
                   f"effort={kw['reasoning_effort']}, finish={last}, tokens={getattr(usage, 'total_tokens', '?')}", flush=True)
+            if content and json_mode and i < len(attempts) - 1:
+                # a cut-off or badly broken JSON reply is retried with more room / other settings
+                if last == "length" and not _is_complete_json(content):
+                    print("[sabhasaar] JSON reply was cut off, retrying", flush=True)
+                    continue
+                try:
+                    parse_json(content)
+                except Exception:
+                    print("[sabhasaar] JSON reply could not be parsed, retrying", flush=True)
+                    continue
             if content:
                 return content
         raise SarvamError(f"Sarvam-105B returned an empty answer (finish_reason={last}). Try again.")
@@ -145,10 +155,24 @@ def parse_json(text: str) -> dict:
     try:
         return json.loads(text)
     except json.JSONDecodeError:
-        start, end = text.find("{"), text.rfind("}")
-        if start == -1 or end <= start:
-            raise SarvamError("Model did not return JSON")
-        return json.loads(text[start : end + 1])
+        pass
+    start, end = text.find("{"), text.rfind("}")
+    if start != -1 and end > start:
+        try:
+            return json.loads(text[start : end + 1])
+        except json.JSONDecodeError:
+            pass
+    # last resort: repair small mistakes (a missing comma, an unescaped quote in Hindi text, a cut-off end)
+    import json_repair
+    fixed = json_repair.loads(text[start:] if start != -1 else text)
+    if isinstance(fixed, dict) and fixed:
+        return fixed
+    raise SarvamError("Sarvam-105B did not return usable JSON")
+
+
+def _is_complete_json(text: str) -> bool:
+    obj = last_json_object(re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip()))
+    return obj is not None
 
 
 def last_json_object(text: str) -> str | None:

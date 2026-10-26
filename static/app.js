@@ -461,7 +461,7 @@ async function meetingPage(id, mode, jumpSeg) {
       if (lc.status !== "live") { clearInterval(S.poll); meetingPage(id, mode); return; }
       renderCaptions(lc.captions);
       const so = $("#soFar");
-      if (so) so.textContent = lc.duration ? `${Math.max(1, Math.round(lc.duration / 60))} min recorded so far` : "Waiting for the first half minute";
+      if (so) so.textContent = soFar(lc.duration);
     }, 4000);
     return;
   }
@@ -518,6 +518,11 @@ function meetingHead(m, ready) {
 
 const LIVE_LABELS = { tab: "Online meeting", mic: "Recorded in the room", link: "Stream link" };
 
+function soFar(sec) {
+  if (!sec) return "Waiting for the first half minute";
+  return sec < 60 ? `${Math.round(sec)} sec recorded so far` : `${Math.round(sec / 60)} min recorded so far`;
+}
+
 function liveHead(m) {
   const d = fmtDate(m.date);
   const mine = Rec.active && Rec.active.meeting.id === m.id;
@@ -539,7 +544,7 @@ function liveHead(m) {
       m.body ? h("span", {}, h("strong", {}, m.body)) : null,
       h("span", {}, `${d.day} ${d.rest}`),
       h("span", {}, LIVE_LABELS[m.live_source] || "Live"),
-      h("span", { id: "soFar" }, m.duration ? `${Math.max(1, Math.round(m.duration / 60))} min recorded so far` : "Waiting for the first half minute")),
+      h("span", { id: "soFar" }, soFar(m.duration))),
     h("p", { class: "hint live-note" }, note),
     h("div", { class: "m-actions" }, stopBtn,
       h("button", { class: "btn ghost", onclick: () => shareDialog(m) }, "Share so others can follow")));

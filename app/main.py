@@ -78,12 +78,17 @@ def list_meetings():
     return store.list_meetings()
 
 
+def _today_india() -> str:
+    from datetime import datetime, timedelta, timezone
+    return datetime.now(timezone(timedelta(hours=5, minutes=30))).date().isoformat()
+
+
 def _meeting_record(mid, title, body, meeting_type, date, language_code, num_speakers, minutes_language,
                     keyterms, status, source_name, **extra) -> dict:
     return {
         "id": mid, "title": title.strip(), "body": body.strip(),
         "meeting_type": meeting_type if meeting_type in prompts.MEETING_TYPES else "general",
-        "date": date, "language_code": language_code or "unknown",
+        "date": date or _today_india(), "language_code": language_code or "unknown",
         "num_speakers": int(num_speakers) if str(num_speakers).strip().isdigit() else None,
         "minutes_language": minutes_language if minutes_language in config.LANGUAGES else "en-IN",
         "keyterms": keyterms, "status": status,

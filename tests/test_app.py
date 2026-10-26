@@ -329,3 +329,29 @@ def test_live_link_recording(client, monkeypatch, tmp_path):
 def test_resolve_stream_direct_media():
     from app.live import resolve_stream
     assert resolve_stream("https://example.com/sansad/live.m3u8?token=1") == "https://example.com/sansad/live.m3u8?token=1"
+
+
+def test_broken_json_is_repaired_or_retried():
+    from types import SimpleNamespace as NS
+    from app.sarvam_service import SarvamService, parse_json
+    assert parse_json('{"title": "T" "one_line": "x"}') == {"title": "T", "one_line": "x"}
+    assert parse_json('{"a": "टूटा "उद्धरण" है"}')["a"] == 'टूटा "उद्धरण" है'
+    replies = [('{"title": "cut', "length"), ('{"title": "ok"}', "stop")]
+    seen = []
+
+    class Client:
+        class chat:
+            @staticmethod
+            def completions(**kw):
+                seen.append(kw)
+                c, f = replies[len(seen) - 1]
+                return NS(choices=[NS(message=NS(content=c), finish_reason=f)])
+
+    svc = SarvamService.__new__(SarvamService)
+    svc.client = Client
+    assert svc.chat([{"role": "user", "content": "x"}], json_mode=True) == '{"title": "ok"}' and len(seen) == 2
+
+
+def test_live_meeting_gets_todays_date(client):
+    m = client.post("/api/live", data={"source": "mic"}).json()
+    assert len(m["date"]) == 10 and m["date"].startswith("20")
