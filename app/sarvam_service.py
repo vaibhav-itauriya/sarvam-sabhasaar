@@ -76,40 +76,46 @@ class SarvamService:
 
     # ---------- Sarvam-105B ----------
     def chat(self, messages: list[dict], max_tokens: int = 4096, json_mode: bool = False,
-             reasoning_effort: str | None = "low") -> str:
-        kwargs = dict(
-            messages=messages,
-            model=config.LLM_MODEL,
-            temperature=0.2,
-            max_tokens=max_tokens,
-        )
-        if reasoning_effort:
-            kwargs["reasoning_effort"] = reasoning_effort
+             reasoning_effort: str = "low") -> str:
+        """reasoning_effort: "low" | "medium" | "high" | "max", or "off" to switch reasoning off."""
+        def build(effort: str, tokens: int, use_json: bool) -> dict:
+            kw = dict(messages=messages, model=config.LLM_MODEL, temperature=0.2, max_tokens=tokens)
+            # The API treats an explicit null as "no reasoning"; leaving it out means the default (medium)
+            kw["reasoning_effort"] = None if effort == "off" else effort
+            if use_json:
+                kw["response_format"] = {"type": "json_object"}
+            return kw
+
+        # sarvam-105b reasons before answering and the reasoning counts against max_tokens, so a reply
+        # can come back empty (finish_reason=length). Retry with more room, then with reasoning switched
+        # off (or back on, if it was off and the API refused that), then without JSON mode.
+        alt = "low" if reasoning_effort == "off" else "off"
+        attempts = [build(reasoning_effort, max_tokens, json_mode),
+                    build(reasoning_effort, max(max_tokens * 2, 6000), json_mode),
+                    build(alt, max(max_tokens, 4000), json_mode)]
         if json_mode:
-            kwargs["response_format"] = {"type": "json_object"}
-        # sarvam-105b reasons before answering and the reasoning counts against max_tokens,
-        # so an answer can come back empty. Retry once with more room, then once without JSON mode.
-        attempts = [kwargs, {**kwargs, "max_tokens": max(max_tokens * 2, 6000)}]
-        if json_mode:
-            attempts.append({k: v for k, v in attempts[1].items() if k != "response_format"})
+            attempts.append(build(alt, max(max_tokens, 4000), False))
         last = ""
         for i, kw in enumerate(attempts):
-            resp = self.client.chat.completions(**kw)
+            try:
+                resp = self.client.chat.completions(**kw)
+            except Exception as e:
+                if i == len(attempts) - 1:
+                    raise
+                print(f"[sabhasaar] 105B call failed ({type(e).__name__}: {str(e)[:200]}), trying next setting", flush=True)
+                continue
             choice = resp.choices[0]
             content = (choice.message.content or "").strip()
             reasoning = (getattr(choice.message, "reasoning_content", None) or "").strip()
             if not content and json_mode and "{" in reasoning:
                 # some replies put the final JSON at the end of the reasoning instead of the content
                 content = last_json_object(reasoning) or ""
+            last = getattr(choice, "finish_reason", "") or ""
             usage = getattr(resp, "usage", None)
             print(f"[sabhasaar] 105B reply: {len(content)} chars, reasoning {len(reasoning)} chars, "
-                  f"finish={getattr(choice, 'finish_reason', '')}, usage={getattr(usage, 'total_tokens', '?')}", flush=True)
+                  f"effort={kw['reasoning_effort']}, finish={last}, tokens={getattr(usage, 'total_tokens', '?')}", flush=True)
             if content:
-                if i:
-                    print(f"[sabhasaar] Sarvam-105B answered on retry {i}", flush=True)
                 return content
-            last = getattr(choice, "finish_reason", "") or ""
-            print(f"[sabhasaar] Sarvam-105B gave an empty answer (finish_reason={last}), retrying", flush=True)
         raise SarvamError(f"Sarvam-105B returned an empty answer (finish_reason={last}). Try again.")
 
     # ---------- Bulbul ----------

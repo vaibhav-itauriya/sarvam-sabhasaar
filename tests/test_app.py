@@ -162,7 +162,28 @@ def test_chat_retries_empty_answer():
     svc = SarvamService.__new__(SarvamService)
     svc.client = Client
     assert svc.chat([{"role": "user", "content": "x"}], max_tokens=2000, json_mode=True) == '{"answer": "ok"}'
-    assert seen[1]["max_tokens"] == 6000 and "response_format" not in seen[2]
+    assert seen[0]["reasoning_effort"] == "low" and seen[1]["max_tokens"] == 6000
+    assert seen[2]["reasoning_effort"] is None and "response_format" in seen[2]
+
+
+def test_chat_off_sends_null_and_falls_back_if_refused():
+    from types import SimpleNamespace as NS
+    from app.sarvam_service import SarvamService
+    seen = []
+
+    class Client:
+        class chat:
+            @staticmethod
+            def completions(**kw):
+                seen.append(kw)
+                if kw["reasoning_effort"] is None:
+                    raise RuntimeError("422 reasoning_effort")
+                return NS(choices=[NS(message=NS(content="ok"), finish_reason="stop")])
+
+    svc = SarvamService.__new__(SarvamService)
+    svc.client = Client
+    assert svc.chat([{"role": "user", "content": "x"}], reasoning_effort="off") == "ok"
+    assert "reasoning_effort" in seen[0] and seen[0]["reasoning_effort"] is None and seen[-1]["reasoning_effort"] == "low"
 
 
 def test_plain_text_answer_is_kept(client, monkeypatch):

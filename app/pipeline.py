@@ -397,7 +397,8 @@ def ensure_language(svc, text: str, language: str | None) -> str:
     if not text or not language or language not in config.LANGUAGES or script_share(text, language) >= 0.6:
         return text
     print(f"[sabhasaar] reply was not in {language}, translating", flush=True)
-    return svc.chat(prompts.translate_messages(text, lang_name(language)), max_tokens=3000).strip() or text
+    return svc.chat(prompts.translate_messages(text, lang_name(language)), max_tokens=3000,
+                    reasoning_effort="off").strip() or text
 
 
 # ---------------- spoken brief ----------------
@@ -413,7 +414,8 @@ def brief(svc, mid: str, language: str) -> dict:
             return old
     meta = store.read(mid, "meeting")
     minutes = store.read(mid, "minutes", {})
-    script = svc.chat(prompts.brief_messages(minutes, meta, lang_name(language)), max_tokens=2500).strip()
+    script = svc.chat(prompts.brief_messages(minutes, meta, lang_name(language)), max_tokens=3000,
+                      reasoning_effort="off").strip()
     script = ensure_language(svc, script, language)
     out = {"language": language, "script": script, "audio": None, "version": BRIEF_VERSION}
     if language in config.LANGUAGES:
