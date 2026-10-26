@@ -7,7 +7,7 @@ const S = {
   tab: "minutes",
   lang: safeGet("ss_lang") || "auto",
 };
-const SPEAKER_COLORS = ["#1D4E89", "#8A3B12", "#2E6B3A", "#7A2E6B", "#6B5E12", "#24626B", "#9A2F4F", "#3D3D8F"];
+const SPEAKER_COLORS = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => `var(--spk-${i})`);  // light and dark values live in styles.css
 const STEPS = [
   ["preparing", "Preparing the audio"],
   ["transcribing", "Transcribing and separating speakers with Saaras"],
@@ -32,7 +32,12 @@ function h(tag, attrs, ...kids) {
   for (const [k, v] of Object.entries(attrs || {})) {
     if (v === null || v === undefined || v === false) continue;
     if (k === "class") el.className = v;
-    else if (k === "style" && typeof v === "object") Object.assign(el.style, v);
+    else if (k === "style" && typeof v === "object") {
+      // custom properties such as --c need setProperty, Object.assign silently ignores them
+      for (const [prop, val] of Object.entries(v)) {
+        if (prop.startsWith("--")) el.style.setProperty(prop, val); else el.style[prop] = val;
+      }
+    }
     else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
     else if (k === "html") el.innerHTML = v; // only used with trusted, static strings
     else el.setAttribute(k, v === true ? "" : v);
@@ -91,9 +96,40 @@ const PLAY_ICON = '<svg viewBox="0 0 10 10"><path d="M1 0l9 5-9 5z"/></svg>';
 const PAUSE_ICON = '<svg viewBox="0 0 10 10"><path d="M1 0h3v10H1zM6 0h3v10H6z"/></svg>';
 const MIC_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
 
+/* ---------------- theme ---------------- */
+const THEMES = ["system", "light", "dark"];
+const THEME_ICONS = {
+  system: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>',
+  light: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  dark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
+};
+const THEME_LABELS = { system: "System", light: "Light", dark: "Dark" };
+
+function currentTheme() { const t = safeGet("ss_theme"); return THEMES.includes(t) ? t : "system"; }
+function applyTheme(t) {
+  if (t === "system") delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = t;
+  const btn = $("#themeBtn");
+  if (btn) {
+    btn.innerHTML = THEME_ICONS[t] + `<span class="lbl">${THEME_LABELS[t]}</span>`;
+    const next = THEMES[(THEMES.indexOf(t) + 1) % THEMES.length];
+    btn.title = `Theme: ${THEME_LABELS[t]}. Click for ${THEME_LABELS[next]}.`;
+    btn.setAttribute("aria-label", btn.title);
+  }
+}
+function initTheme() {
+  applyTheme(currentTheme());
+  $("#themeBtn").addEventListener("click", () => {
+    const next = THEMES[(THEMES.indexOf(currentTheme()) + 1) % THEMES.length];
+    safeSet("ss_theme", next);
+    applyTheme(next);
+  });
+}
+
 /* ---------------- routing ---------------- */
 window.addEventListener("hashchange", route);
 window.addEventListener("load", async () => {
+  initTheme();
   try {
     S.config = await api("/api/config");
   } catch (e) {
@@ -121,15 +157,36 @@ function route() {
 /* ---------------- home ---------------- */
 async function home() {
   const view = $("#view");
-  view.replaceChildren();
   const meetings = await api("/api/meetings");
-  view.append(
+  setKids(view,
     h("section", { class: "home-head" },
       h("h1", {}, "Every meeting, on the record, in every language."),
-      h("p", {}, "Upload a Gram Sabha, an Assembly debate or a court hearing. SabhaSaar writes minutes where every point is stamped with the moment it was said, and anyone who missed it can hear a one-minute summary or ask questions in their own language.")),
+      h("p", {}, "Record a Gram Sabha, join an Assembly debate or a court hearing live, or upload a recording. SabhaSaar writes minutes where every point is stamped with the moment it was said, and anyone who missed it can hear a one-minute summary or ask questions in their own language.")),
+    howItWorks(),
+    liveStrip(meetings),
     h("div", { class: "home-grid" }, registerList(meetings), addForm(meetings)),
   );
   document.title = "SabhaSaar";
+}
+
+function howItWorks() {
+  const steps = [
+    ["Record or upload", "Join an online meeting, record the room, paste a live link or upload a file."],
+    ["Minutes with proof", "Saaras separates speakers. Sarvam-105B writes decisions and tasks, each stamped with the moment it was said."],
+    ["Ask in your language", "Anyone who missed it hears a one-minute summary or asks by voice in 11 Indian languages."],
+  ];
+  return h("ol", { class: "how", "aria-label": "How SabhaSaar works" },
+    steps.map(([t, d]) => h("li", {}, h("b", {}, t), h("span", {}, d))));
+}
+
+function liveStrip(meetings) {
+  const live = meetings.filter((m) => m.status === "live");
+  if (!live.length) return null;
+  return h("div", { class: "live-strip" }, live.map((m) =>
+    h("a", { href: `#/m/${m.id}` },
+      h("span", { class: "badge live" }, "Live now"),
+      h("span", {}, h("b", {}, m.title || "Live meeting"), m.body ? `, ${m.body}` : ""),
+      h("span", { class: "go" }, "Follow along"))));
 }
 
 function statusBadge(m) {
@@ -443,6 +500,9 @@ const Rec = {
 /* ---------------- meeting ---------------- */
 async function meetingPage(id, mode, jumpSeg) {
   const view = $("#view");
+  if (!S.data || S.data.meeting?.id !== id) {
+    view.replaceChildren(h("div", { class: "loading" }, h("span", { class: "spinner", "aria-hidden": "true" }), "Opening the meeting…"));
+  }
   try {
     S.data = await api(`/api/meetings/${id}`);
   } catch (e) {

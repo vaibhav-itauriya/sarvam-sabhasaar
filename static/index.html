@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SabhaSaar</title>
   <meta name="description" content="Minutes, spoken summaries and answers for public meetings, in Indian languages. Built on Sarvam AI.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#F5F6F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0F141D" media="(prefers-color-scheme: dark)">
+  <script>
+    // Apply the saved theme before anything is drawn, so dark mode never flashes white
+    try { var t = localStorage.getItem("ss_theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
@@ -17,9 +24,16 @@
       <span class="wm-latin">SabhaSaar</span>
       <span class="wm-deva" lang="hi">सभासार</span>
     </a>
-    <span id="keyState" class="key-state"></span>
+    <div class="top-right">
+      <span id="keyState" class="key-state"></span>
+      <button id="themeBtn" class="theme-btn" type="button"></button>
+    </div>
   </header>
   <main id="view" tabindex="-1"></main>
+  <footer class="site-foot">
+    <span>SabhaSaar turns public meetings into minutes anyone can check, in their own language.</span>
+    <span>Built with Sarvam AI: Saaras v4, Sarvam-105B, Bulbul. <a href="https://github.com/vaibhav-itauriya/sarvam-sabhasaar" target="_blank" rel="noopener">Source on GitHub</a></span>
+  </footer>
   <div id="player" class="player" hidden></div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="/static/app.js"></script>
