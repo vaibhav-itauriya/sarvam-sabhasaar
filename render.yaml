@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: sarvam-sabhasaar
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/config
+    envVars:
+      - key: SARVAM_API_KEY
+        sync: false  # Render asks for the value when you create the service
