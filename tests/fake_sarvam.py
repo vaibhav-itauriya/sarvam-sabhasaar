@@ -61,6 +61,8 @@ class FakeSarvam:
             return json.dumps({"answer": "सड़क के लिए दो लाख रुपये पास हुए।", "refs": ["M1#1", "M2#2"] if multi else ["#1", "#3", "#99"],
                                "status": "answered", "language_code": "hi-IN", "follow_ups": ["काम कब शुरू होगा?"]},
                               ensure_ascii=False)
+        if "Translate the user's text into" in system:
+            return "சாலைக்கு இரண்டு லட்சம் ரூபாய் ஒதுக்கப்பட்டது."
         if "spoken briefing" in system:
             return "आज की बैठक में सड़क के लिए दो लाख रुपये पास हुए। काम तीस दिन में शुरू होगा।"
         raise AssertionError("unexpected prompt: " + system[:80])

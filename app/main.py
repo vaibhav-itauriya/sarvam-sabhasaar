@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import json
 import mimetypes
 from contextlib import asynccontextmanager
 import shutil
@@ -240,7 +241,13 @@ def make_brief(mid: str, body: BriefReq):
     if m.get("status") != "ready":
         raise HTTPException(400, "Minutes are not ready yet")
     cached = store.mdir(mid) / "briefs" / f"{body.language}.json"
-    svc = None if cached.exists() else get_service()  # cached briefs work without a key
+    fresh = False
+    if cached.exists():
+        try:
+            fresh = json.loads(cached.read_text(encoding="utf-8")).get("version") == pipeline.BRIEF_VERSION
+        except Exception:
+            fresh = False
+    svc = None if fresh else get_service()  # an up-to-date saved brief works without a key
     try:
         out = pipeline.brief(svc, mid, body.language)
         if out.get("audio"):

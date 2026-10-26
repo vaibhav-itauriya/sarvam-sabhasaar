@@ -250,7 +250,7 @@ def build_minutes(svc, mid: str) -> None:
             if sp.get("suggested_name"):
                 cur["name"] = sp["suggested_name"]
                 cur["named_by"] = "model"
-            if sp.get("role"):
+            if sp.get("role") and sp["role"].strip().lower() not in ("a speaker", "speaker", "unknown", "none", "n/a"):
                 cur["role"] = sp["role"]
     fields = dict(status="ready", status_note="", speakers=speakers)
     if not meta.get("title") and minutes.get("title"):
@@ -289,7 +289,9 @@ def ask(svc, mid: str, question: str, language: str | None = None, scope: str = 
     meta = store.read(mid, "meeting")
     if meta.get("status") != "ready":
         raise SarvamError("This meeting is still being processed")
-    lang_hint = lang_name(language) if language and language != "auto" else None
+    if not language or language == "auto":
+        language = detect_script_lang(question)  # None for English or Hinglish, decided by the model
+    lang_hint = lang_name(language) if language else None
     history = store.read(mid, "qa", [])
     if scope == "body" and meta.get("body"):
         same = [m for m in store.list_meetings()
@@ -328,11 +330,13 @@ def ask(svc, mid: str, question: str, language: str | None = None, scope: str = 
         if seg:
             refs.append({"meeting_id": target, "seg": seg["id"], "start": seg["start"],
                          "label": hms(seg["start"]) if target == mid else f"{labels[target]} {hms(seg['start'])}"})
+    if language:
+        data["answer"] = ensure_language(svc, data.get("answer") or "", language)
     answer = {
         "question": question,
         "answer": data.get("answer") or "",
         "status": data.get("status") or "answered",
-        "language_code": data.get("language_code") or language or "en-IN",
+        "language_code": answer_language(data, language),
         "refs": refs,
         "follow_ups": (data.get("follow_ups") or [])[:3],
         "scope": scope,
@@ -342,21 +346,76 @@ def ask(svc, mid: str, question: str, language: str | None = None, scope: str = 
     return answer
 
 
+def answer_language(data: dict, language: str | None) -> str:
+    """Language code for reading the answer aloud, trusting the actual script over the model's label."""
+    text = data.get("answer") or ""
+    by_script = detect_script_lang(text)
+    if by_script:
+        claimed = data.get("language_code")
+        same_script = claimed in SCRIPT_RANGES and SCRIPT_RANGES[claimed] == SCRIPT_RANGES[by_script]
+        return claimed if same_script else (language if language in SCRIPT_RANGES else by_script)
+    claimed = data.get("language_code") or "en-IN"
+    return claimed if claimed in ("en-IN", "hi-IN") else "en-IN"  # Latin text: English, or Hinglish for the Hindi voice
+
+
 def _segment(mid: str, seg_id: int) -> dict | None:
     segs = store.read(mid, "transcript", {}).get("segments", [])
     return segs[seg_id] if 0 <= seg_id < len(segs) else None
 
 
+# ---------------- language checks ----------------
+SCRIPT_RANGES = {
+    "hi-IN": (0x0900, 0x097F), "mr-IN": (0x0900, 0x097F), "bn-IN": (0x0980, 0x09FF), "pa-IN": (0x0A00, 0x0A7F),
+    "gu-IN": (0x0A80, 0x0AFF), "od-IN": (0x0B00, 0x0B7F), "ta-IN": (0x0B80, 0x0BFF), "te-IN": (0x0C00, 0x0C7F),
+    "kn-IN": (0x0C80, 0x0CFF), "ml-IN": (0x0D00, 0x0D7F),
+}
+
+
+def script_share(text: str, lang: str) -> float:
+    """Share of letters in text written in lang's script (Latin for English)."""
+    letters = [c for c in text if c.isalpha()]
+    if not letters:
+        return 1.0
+    if lang == "en-IN":
+        return sum(c.isascii() for c in letters) / len(letters)
+    lo, hi = SCRIPT_RANGES.get(lang, (0, 0x10FFFF))
+    return sum(lo <= ord(c) <= hi for c in letters) / len(letters)
+
+
+def detect_script_lang(text: str) -> str | None:
+    """Language whose script most of text uses, None for Latin (English or Hinglish)."""
+    best, share = None, 0.3
+    for lang in ("hi-IN", "bn-IN", "pa-IN", "gu-IN", "od-IN", "ta-IN", "te-IN", "kn-IN", "ml-IN"):
+        sh = script_share(text, lang)
+        if sh > share:
+            best, share = lang, sh
+    return best
+
+
+def ensure_language(svc, text: str, language: str | None) -> str:
+    """If text is not in language's script, have Sarvam-105B translate it."""
+    if not text or not language or language not in config.LANGUAGES or script_share(text, language) >= 0.6:
+        return text
+    print(f"[sabhasaar] reply was not in {language}, translating", flush=True)
+    return svc.chat(prompts.translate_messages(text, lang_name(language)), max_tokens=3000).strip() or text
+
+
 # ---------------- spoken brief ----------------
+BRIEF_VERSION = 2  # bump to throw away briefs saved by older versions
+
+
 def brief(svc, mid: str, language: str) -> dict:
     bdir = store.mdir(mid) / "briefs"
     cached = bdir / f"{language}.json"
     if cached.exists():
-        return json.loads(cached.read_text(encoding="utf-8"))
+        old = json.loads(cached.read_text(encoding="utf-8"))
+        if old.get("version") == BRIEF_VERSION:
+            return old
     meta = store.read(mid, "meeting")
     minutes = store.read(mid, "minutes", {})
     script = svc.chat(prompts.brief_messages(minutes, meta, lang_name(language)), max_tokens=2500).strip()
-    out = {"language": language, "script": script, "audio": None}
+    script = ensure_language(svc, script, language)
+    out = {"language": language, "script": script, "audio": None, "version": BRIEF_VERSION}
     if language in config.LANGUAGES:
         wav = svc.speak(script, language)
         bdir.mkdir(exist_ok=True)

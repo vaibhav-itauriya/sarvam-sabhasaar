@@ -112,8 +112,10 @@ def merge_minutes_messages(partials: list[dict], meta: dict, lang_name: str) -> 
 def answer_messages(question: str, context: str, scope_note: str, history: list[dict], lang_hint: str | None,
                     meeting_type: str) -> list[dict]:
     mt = MEETING_TYPES.get(meeting_type, MEETING_TYPES["general"])
-    lang_rule = (f"Answer in {lang_hint}." if lang_hint else
-                 "Answer in the same language and script the question was asked in (Hinglish stays Hinglish).")
+    lang_rule = (f"Write the answer and follow-ups only in {lang_hint}, in its own script." if lang_hint else
+                 "The language of the QUESTION alone decides the answer language. Ignore the language of the records "
+                 "and of earlier questions. A question in English words gets an English answer. Hindi written in "
+                 "Latin letters (Hinglish) gets a Hinglish answer. A question in a native script gets an answer in that script.")
     system = (
         "You are SabhaSaar. You help people who could not attend a meeting understand what happened in it. "
         f"The records are from {mt['context']} {scope_note}"
@@ -153,5 +155,14 @@ def brief_messages(minutes: dict, meta: dict, lang_name: str) -> list[dict]:
         "Start with what the meeting was, then what was decided, then what happens next and who is responsible, "
         "then anything left unresolved. Stay neutral. Output only the script."
     )
-    user = f"Meeting: {meta.get('title')} ({meta.get('body') or ''}, {meta.get('date') or ''})\nMINUTES:\n{json.dumps(minutes, ensure_ascii=False)}"
+    user = (f"Meeting: {meta.get('title')} ({meta.get('body') or ''}, {meta.get('date') or ''})\n"
+            f"MINUTES (these may be in another language):\n{json.dumps(minutes, ensure_ascii=False)}\n\n"
+            f"Now write the spoken briefing entirely in {lang_name}, using {lang_name} script."
+            + ("" if lang_name == "English" else " Do not write it in English."))
     return [{"role": "system", "content": system}, {"role": "user", "content": user}]
+
+
+def translate_messages(text: str, lang_name: str) -> list[dict]:
+    return [{"role": "system", "content": f"Translate the user's text into {lang_name}, written in {lang_name} script. "
+             "Keep names, numbers and dates. Keep it natural and simple, the way people speak. Output only the translation."},
+            {"role": "user", "content": text}]

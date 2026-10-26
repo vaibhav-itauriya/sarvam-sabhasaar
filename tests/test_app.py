@@ -180,3 +180,40 @@ def test_last_json_object():
     t = 'thinking {"draft": 1} more thoughts... final: {"answer": "x", "refs": ["#1"], "meta": {"a": 1}} done'
     assert json.loads(last_json_object(t))["answer"] == "x"
     assert last_json_object("no json here") is None
+
+
+def test_language_checks(client, monkeypatch):
+    from app.pipeline import answer_language, detect_script_lang, ensure_language, script_share
+    assert detect_script_lang("मनरेगा का पैसा कब आएगा?") == "hi-IN"
+    assert detect_script_lang("சாலை அனுமதிக்கப்பட்டதா?") == "ta-IN"
+    assert detect_script_lang("Was the road approved?") is None
+    assert script_share("Hello everyone", "ta-IN") == 0 and script_share("Hello", "en-IN") == 1
+    assert answer_language({"answer": "சாலை", "language_code": "hi-IN"}, None) == "ta-IN"
+    assert answer_language({"answer": "Road was approved", "language_code": "ta-IN"}, None) == "en-IN"
+    assert answer_language({"answer": "Road nahi bani", "language_code": "hi-IN"}, None) == "hi-IN"
+
+    class T:
+        def chat(self, messages, **k):
+            assert "Tamil" in messages[0]["content"]
+            return "சாலை அனுமதிக்கப்படவில்லை"
+    assert ensure_language(T(), "The road was not approved", "ta-IN") == "சாலை அனுமதிக்கப்படவில்லை"
+    assert ensure_language(T(), "சாலை", "ta-IN") == "சாலை"  # already right, no call
+
+
+def test_brief_in_wrong_language_is_translated_and_old_cache_dropped(client, monkeypatch):
+    mid = upload(client, body="Brief lang")
+    wait_ready(client, mid)
+    d = store.mdir(mid) / "briefs"
+    d.mkdir(exist_ok=True)
+    (d / "ta-IN.json").write_text('{"language": "ta-IN", "script": "old english", "audio": null}', encoding="utf-8")
+    real = FAKE.chat
+
+    def chat(m, **k):
+        if "Translate the user's text into Tamil" in m[0]["content"]:
+            return "சாலைக்கு இரண்டு லட்சம் ரூபாய் ஒதுக்கப்பட்டது."
+        if "spoken briefing" in m[0]["content"]:
+            return "The road got two lakh rupees."
+        return real(m, **k)
+    monkeypatch.setattr(FAKE, "chat", chat)
+    b = client.post(f"/api/meetings/{mid}/brief", json={"language": "ta-IN"}).json()
+    assert b.get("script", "").startswith("சாலைக்கு") and b["audio_url"], b
