@@ -20,6 +20,7 @@ const SUGGEST = {
   court: ["What did the judge order?", "अगली तारीख कब है?", "What did each side argue?", "What has to be filed before next hearing?"],
   municipal: ["What was decided?", "Which complaints were raised?", "Who is responsible for each task?"],
   general: ["What was decided?", "Summarise this in 3 lines", "What is still pending?"],
+  live: ["What has happened so far?", "अब तक क्या हुआ?", "Has anything been decided yet?"],
 };
 
 /* ---------------- helpers ---------------- */
@@ -43,6 +44,8 @@ function h(tag, attrs, ...kids) {
   return el;
 }
 const $ = (sel, root = document) => root.querySelector(sel);
+// replaceChildren() would print "null" for empty slots, so drop them first
+function setKids(el, ...kids) { el.replaceChildren(...kids.flat().filter((k) => k !== null && k !== undefined && k !== false)); }
 
 async function api(path, opts = {}) {
   const res = await fetch(path, opts);
@@ -130,6 +133,7 @@ async function home() {
 }
 
 function statusBadge(m) {
+  if (m.status === "live") return h("span", { class: "badge live" }, "Live");
   if (m.status === "ready") return h("span", { class: "badge ready" }, "Ready");
   if (m.status === "failed") return h("span", { class: "badge failed" }, "Failed");
   return h("span", { class: "badge working" }, "Processing");
@@ -150,8 +154,17 @@ function registerList(meetings) {
     rows.length ? rows : h("p", { class: "reg-empty" }, "No meetings yet. Add your first recording on the right."));
 }
 
+const MODES = {
+  upload: { label: "Upload a recording", hint: "An audio or video file of a meeting that already happened.", cta: "Make minutes" },
+  tab: { label: "Join an online meeting", hint: "Google Meet, Zoom, Teams, a YouTube live of Sansad TV or a court live stream. Open it in another tab, then pick that tab and tick “Also share tab audio”.", cta: "Choose the meeting tab and start" },
+  mic: { label: "Record in this room", hint: "For a Gram Sabha or meeting happening around you. Keep this device near the speakers and the screen on.", cta: "Start recording" },
+  link: { label: "Record from a link", hint: "Paste a live stream or video link. The server records it, so you can close this page.", cta: "Start recording the link" },
+};
+const canShareTab = () => !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) && !/Android|iPhone|iPad/i.test(navigator.userAgent);
+
 function addForm(meetings) {
-  let file = null, recorder = null, chunks = [], recStart = 0, recTimer = null;
+  let file = null;
+  let mode = canShareTab() ? "tab" : "mic";
   const fileInput = h("input", { type: "file", accept: "audio/*,video/*", class: "visually-hidden", id: "fileIn" });
   const dropText = h("span", {}, "Drop an audio or video file here, or click to choose one");
   const drop = h("label", { class: "drop", for: "fileIn" }, dropText);
@@ -165,29 +178,30 @@ function addForm(meetings) {
   drop.addEventListener("dragleave", () => drop.classList.remove("drag"));
   drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("drag"); if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); });
 
-  const recBtn = h("button", { type: "button", class: "btn rec small" }, "Record the meeting here");
-  recBtn.addEventListener("click", async () => {
-    if (recorder) { recorder.stop(); return; }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      recorder = new MediaRecorder(stream);
-      chunks = [];
-      recorder.ondataavailable = (e) => chunks.push(e.data);
-      recorder.onstop = () => {
-        stream.getTracks().forEach((t) => t.stop());
-        clearInterval(recTimer);
-        const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
-        setFile(new File([blob], `recording-${new Date().toISOString().slice(0, 16)}.webm`, { type: blob.type }));
-        recorder = null;
-        recBtn.classList.remove("on");
-        recBtn.textContent = "Record again";
-      };
-      recorder.start(1000);
-      recStart = Date.now();
-      recBtn.classList.add("on");
-      recTimer = setInterval(() => (recBtn.textContent = `Stop recording (${hms((Date.now() - recStart) / 1000)})`), 500);
-    } catch (e) { toast("Microphone not available: " + e.message, true); }
-  });
+  const urlInput = h("input", { id: "f-url", type: "url", placeholder: "https://www.youtube.com/watch?v=... or a .m3u8 stream link" });
+  const withMic = h("input", { type: "checkbox", id: "f-withmic" });
+  const modeBody = h("div", { class: "mode-body" });
+  const submit = h("button", { type: "submit", class: "btn green wide", disabled: !S.config.has_key }, MODES[mode].cta);
+
+  const modeRadios = h("div", { class: "modes", role: "radiogroup", "aria-label": "How to add the meeting" },
+    Object.entries(MODES).map(([k, v]) => {
+      const disabled = k === "tab" && !canShareTab();
+      return h("label", { class: "mode" + (disabled ? " off" : ""), title: disabled ? "Needs Chrome or Edge on a computer" : "" },
+        h("input", { type: "radio", name: "mode", value: k, checked: k === mode, disabled }),
+        h("span", {}, v.label));
+    }));
+  const renderMode = () => {
+    setKids(modeBody,
+      h("p", { class: "hint" }, MODES[mode].hint),
+      mode === "upload" ? h("div", {}, fileInput, drop) : null,
+      mode === "tab" ? h("label", { class: "check" }, withMic, " Also record my microphone (tick this if you will speak in the meeting)") : null,
+      mode === "link" ? h("div", { class: "field" }, h("label", { for: "f-url" }, "Stream or video link"), urlInput) : null,
+      mode !== "upload" ? h("p", { class: "hint consent" }, "Tell everyone in the meeting that it is being recorded.") : null,
+    );
+    submit.textContent = MODES[mode].cta;
+  };
+  modeRadios.addEventListener("change", (e) => { mode = e.target.value; renderMode(); });
+  renderMode();
 
   const langOpts = (withAuto) => [
     withAuto ? h("option", { value: "unknown" }, "Detect automatically") : null,
@@ -195,15 +209,11 @@ function addForm(meetings) {
   ];
   const bodies = [...new Set(meetings.map((m) => m.body).filter(Boolean))];
   const today = new Date().toISOString().slice(0, 10);
-  const submit = h("button", { type: "submit", class: "btn green wide", disabled: !S.config.has_key }, "Make minutes");
 
   const form = h("form", { class: "panel" },
     h("h2", {}, "Add a meeting"),
-    h("p", { class: "hint" }, S.config.has_key
-      ? "Long recordings are fine. A two-hour meeting usually takes a few minutes."
-      : "Add SARVAM_API_KEY to the .env file and restart to process recordings. The sample meeting works without it."),
-    fileInput, drop,
-    h("div", { class: "or-record" }, "or", recBtn),
+    S.config.has_key ? null : h("p", { class: "hint" }, "Add SARVAM_API_KEY to the .env file and restart to record or process meetings. The sample meeting works without it."),
+    modeRadios, modeBody,
     h("div", { class: "field" }, h("label", { for: "f-type" }, "What kind of meeting"),
       h("select", { id: "f-type", name: "meeting_type" },
         Object.entries(S.config.meeting_types).map(([k, v]) => h("option", { value: k }, v.label)))),
@@ -226,24 +236,209 @@ function addForm(meetings) {
     submit,
   );
   $("#f-ml", form).value = "en-IN";
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    if (!file) return toast("Choose a recording or record one first", true);
+    if (Rec.active) return toast("A recording is already running. Stop it first.", true);
     const fd = new FormData(form);
-    fd.append("file", file, file.name);
-    submit.disabled = true;
-    submit.textContent = "Uploading…";
+    fd.delete("mode");
+    const busy = (txt) => { submit.disabled = true; submit.textContent = txt; };
+    const reset = () => { submit.disabled = !S.config.has_key; submit.textContent = MODES[mode].cta; };
     try {
-      const m = await api("/api/meetings", { method: "POST", body: fd });
+      if (mode === "upload") {
+        if (!file) return toast("Choose a recording first", true);
+        fd.append("file", file, file.name);
+        busy("Uploading…");
+        const m = await api("/api/meetings", { method: "POST", body: fd });
+        location.hash = `#/m/${m.id}`;
+        return;
+      }
+      if (mode === "link") {
+        if (!urlInput.value.trim()) return toast("Paste the stream link first", true);
+        fd.append("source", "link");
+        fd.append("url", urlInput.value.trim());
+        busy("Connecting…");
+        const m = await api("/api/live", { method: "POST", body: fd });
+        location.hash = `#/m/${m.id}`;
+        return;
+      }
+      // tab or mic: ask for the sound first, while the click still counts as a user action
+      const streams = await captureStreams(mode, withMic.checked);
+      fd.append("source", mode);
+      busy("Starting…");
+      let m;
+      try { m = await api("/api/live", { method: "POST", body: fd }); }
+      catch (err) { streams.forEach((s) => s.getTracks().forEach((t) => t.stop())); throw err; }
+      Rec.start(m, streams);
       location.hash = `#/m/${m.id}`;
     } catch (err) {
-      toast(err.message, true);
-      submit.disabled = false;
-      submit.textContent = "Make minutes";
+      toast(err.message || String(err), true);
+      reset();
     }
   });
   return form;
 }
+
+/* ---------------- live recording in the browser ---------------- */
+async function captureStreams(mode, withMic) {
+  const streams = [];
+  if (mode === "tab") {
+    const ds = await navigator.mediaDevices.getDisplayMedia({
+      video: true,
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+      selfBrowserSurface: "exclude", systemAudio: "include", surfaceSwitching: "include",
+    });
+    if (!ds.getAudioTracks().length) {
+      ds.getTracks().forEach((t) => t.stop());
+      throw new Error("No sound came with that share. Pick the meeting tab (not a window) and tick “Also share tab audio”.");
+    }
+    streams.push(ds);
+  }
+  if (mode === "mic" || withMic) {
+    try {
+      streams.push(await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }));
+    } catch (e) {
+      streams.forEach((s) => s.getTracks().forEach((t) => t.stop()));
+      throw new Error("Microphone not available: " + e.message);
+    }
+  }
+  return streams;
+}
+
+function encodeWav(int16, rate = 16000) {
+  const buf = new ArrayBuffer(44 + int16.length * 2);
+  const v = new DataView(buf);
+  const str = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  str(0, "RIFF"); v.setUint32(4, 36 + int16.length * 2, true); str(8, "WAVE"); str(12, "fmt ");
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true);
+  v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); str(36, "data");
+  v.setUint32(40, int16.length * 2, true);
+  new Int16Array(buf, 44).set(int16);
+  return new Blob([buf], { type: "audio/wav" });
+}
+
+function downsample(float32, fromRate, toRate = 16000) {
+  const ratio = fromRate / toRate;
+  const n = Math.floor(float32.length / ratio);
+  const out = new Int16Array(n);
+  for (let i = 0; i < n; i++) {
+    const a = Math.floor(i * ratio), b = Math.min(float32.length, Math.floor((i + 1) * ratio));
+    let sum = 0;
+    for (let j = a; j < b; j++) sum += float32[j];
+    const s = Math.max(-1, Math.min(1, sum / Math.max(1, b - a)));
+    out[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+  }
+  return out;
+}
+
+const Rec = {
+  active: null,
+  CHUNK_SECONDS: 25,
+
+  start(meeting, streams) {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const mix = ctx.createGain();
+    streams.forEach((s) => ctx.createMediaStreamSource(new MediaStream(s.getAudioTracks())).connect(mix));
+    const proc = ctx.createScriptProcessor(4096, 1, 1);
+    const silent = ctx.createGain();
+    silent.gain.value = 0;
+    mix.connect(proc); proc.connect(silent); silent.connect(ctx.destination);
+    const r = { meeting, streams, ctx, proc, parts: [], samples: 0, seq: 0, level: 0, startedAt: Date.now(),
+                queue: Promise.resolve(), stopping: false, wakeLock: null };
+    proc.onaudioprocess = (e) => {
+      const d = e.inputBuffer.getChannelData(0);
+      r.parts.push(new Float32Array(d));
+      r.samples += d.length;
+      let sum = 0;
+      for (let i = 0; i < d.length; i += 8) sum += d[i] * d[i];
+      r.level = Math.min(1, Math.sqrt(sum / (d.length / 8)) * 4);
+      if (r.samples >= Rec.CHUNK_SECONDS * ctx.sampleRate) Rec.flush();
+    };
+    // the "Stop sharing" button in the browser ends the recording too
+    streams.forEach((s) => s.getVideoTracks().forEach((t) => t.addEventListener("ended", () => Rec.stop())));
+    if (navigator.wakeLock) navigator.wakeLock.request("screen").then((w) => (r.wakeLock = w)).catch(() => {});
+    Rec.active = r;
+    window.addEventListener("beforeunload", Rec.warn);
+    Rec.renderBar();
+    r.barTimer = setInterval(Rec.renderBar, 500);
+  },
+
+  warn(e) { if (Rec.active) { e.preventDefault(); e.returnValue = ""; } },
+
+  flush(final = false) {
+    const r = Rec.active;
+    if (!r || !r.samples) return r ? r.queue : Promise.resolve();
+    const all = new Float32Array(r.samples);
+    let o = 0;
+    for (const p of r.parts) { all.set(p, o); o += p.length; }
+    r.parts = []; r.samples = 0;
+    if (final && all.length < r.ctx.sampleRate) return r.queue;  // under a second: drop
+    const wav = encodeWav(downsample(all, r.ctx.sampleRate));
+    const seq = r.seq++;
+    const mid = r.meeting.id;
+    r.queue = r.queue.then(() => Rec.upload(mid, seq, wav));
+    return r.queue;
+  },
+
+  async upload(mid, seq, wav, tries = 3) {
+    const fd = new FormData();
+    fd.append("audio", wav, `chunk-${seq}.wav`);
+    fd.append("seq", seq);
+    try {
+      const res = await fetch(`/api/live/${mid}/chunk`, { method: "POST", body: fd });
+      if (res.status === 409) { toast("This meeting was stopped. Recording ended."); Rec.cleanup(); return; }
+      if (!res.ok) throw new Error(res.status);
+    } catch (e) {
+      if (tries > 1) { await new Promise((ok) => setTimeout(ok, 2000)); return Rec.upload(mid, seq, wav, tries - 1); }
+      toast("A part of the recording could not be sent. Check your internet.", true);
+    }
+  },
+
+  async stop() {
+    const r = Rec.active;
+    if (!r || r.stopping) return;
+    r.stopping = true;
+    Rec.renderBar();
+    r.proc.onaudioprocess = null;
+    await Rec.flush(true);
+    const mid = r.meeting.id;
+    Rec.cleanup();
+    try { await api(`/api/live/${mid}/stop`, { method: "POST" }); } catch (e) { toast(e.message, true); }
+    if (location.hash.startsWith(`#/m/${mid}`)) route(); else location.hash = `#/m/${mid}`;
+  },
+
+  cleanup() {
+    const r = Rec.active;
+    if (!r) return;
+    clearInterval(r.barTimer);
+    try { r.proc.disconnect(); r.ctx.close(); } catch { /* already closed */ }
+    r.streams.forEach((s) => s.getTracks().forEach((t) => t.stop()));
+    if (r.wakeLock) r.wakeLock.release().catch(() => {});
+    Rec.active = null;
+    window.removeEventListener("beforeunload", Rec.warn);
+    $("#recbar")?.remove();
+    document.body.classList.remove("recording");
+  },
+
+  renderBar() {
+    const r = Rec.active;
+    if (!r) return;
+    let bar = $("#recbar");
+    if (!bar) {
+      bar = h("div", { id: "recbar", class: "recbar", role: "status" });
+      document.body.prepend(bar);
+      document.body.classList.add("recording");
+    }
+    const secs = (Date.now() - r.startedAt) / 1000;
+    setKids(bar,
+      h("span", { class: "rec-dot", "aria-hidden": "true" }),
+      h("a", { href: `#/m/${r.meeting.id}` }, r.stopping ? "Finishing the recording…" : `Recording ${r.meeting.title || "meeting"}`),
+      h("span", { class: "rec-time" }, hms(secs)),
+      h("span", { class: "rec-level", title: "Sound level" }, h("span", { style: { width: `${Math.round(r.level * 100)}%` } })),
+      r.stopping ? null : h("button", { class: "btn small", onclick: () => Rec.stop() }, "Stop and make minutes"),
+    );
+  },
+};
 
 /* ---------------- meeting ---------------- */
 async function meetingPage(id, mode, jumpSeg) {
@@ -256,6 +451,20 @@ async function meetingPage(id, mode, jumpSeg) {
   }
   const { meeting } = S.data;
   document.title = `${meeting.title || "Meeting"} | SabhaSaar`;
+  if (meeting.status === "live") {
+    teardownPlayer();
+    view.replaceChildren(liveHead(meeting), h("div", { class: "m-grid" }, liveCaptionsView(), missedPanel()));
+    renderCaptions(S.data.captions || []);
+    S.poll = setInterval(async () => {
+      const lc = await api(`/api/live/${id}/captions`).catch(() => null);
+      if (!lc) return;
+      if (lc.status !== "live") { clearInterval(S.poll); meetingPage(id, mode); return; }
+      renderCaptions(lc.captions);
+      const so = $("#soFar");
+      if (so) so.textContent = lc.duration ? `${Math.max(1, Math.round(lc.duration / 60))} min recorded so far` : "Waiting for the first half minute";
+    }, 4000);
+    return;
+  }
   if (meeting.status !== "ready") {
     teardownPlayer();
     view.replaceChildren(meetingHead(meeting, false), progressView(meeting));
@@ -305,6 +514,62 @@ function meetingHead(m, ready) {
       nSpk ? h("span", {}, `${nSpk} speakers`) : null,
       m.detected_language ? h("span", {}, `Spoken in ${S.config.languages[m.detected_language] || m.detected_language}`) : null),
     actions);
+}
+
+const LIVE_LABELS = { tab: "Online meeting", mic: "Recorded in the room", link: "Stream link" };
+
+function liveHead(m) {
+  const d = fmtDate(m.date);
+  const mine = Rec.active && Rec.active.meeting.id === m.id;
+  const stopBtn = h("button", { class: "btn rec on" }, "Stop and make minutes");
+  stopBtn.addEventListener("click", async () => {
+    if (mine) return Rec.stop();
+    stopBtn.disabled = true;
+    try { await api(`/api/live/${m.id}/stop`, { method: "POST" }); route(); }
+    catch (e) { toast(e.message, true); stopBtn.disabled = false; }
+  });
+  const note = m.live_source === "link" ? "The server is recording this stream. You can close this page."
+    : mine ? "This browser is recording. Keep this tab open until the meeting ends."
+    : "Another device is recording this meeting. Stopping here ends the recording for everyone.";
+  return h("header", { class: "m-head" },
+    h("a", { class: "back", href: "#/" }, "All meetings"),
+    h("h1", {}, m.title || "Live meeting"),
+    h("div", { class: "m-meta" },
+      h("span", { class: "badge live" }, "Live now"),
+      m.body ? h("span", {}, h("strong", {}, m.body)) : null,
+      h("span", {}, `${d.day} ${d.rest}`),
+      h("span", {}, LIVE_LABELS[m.live_source] || "Live"),
+      h("span", { id: "soFar" }, m.duration ? `${Math.max(1, Math.round(m.duration / 60))} min recorded so far` : "Waiting for the first half minute")),
+    h("p", { class: "hint live-note" }, note),
+    h("div", { class: "m-actions" }, stopBtn,
+      h("button", { class: "btn ghost", onclick: () => shareDialog(m) }, "Share so others can follow")));
+}
+
+function liveCaptionsView() {
+  return h("section", { class: "live-caps" },
+    h("h2", {}, "Live captions"),
+    h("p", { class: "hint" }, "A new line appears about every half minute. Speaker names and the full minutes come when the meeting ends."),
+    h("div", { id: "capList", class: "transcript", "aria-live": "polite" }));
+}
+
+function renderCaptions(caps) {
+  const list = $("#capList");
+  if (!list) return;
+  const nearBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 80;
+  let n = 0;
+  const segs = [];
+  const rows = caps.map((c) => {
+    let text, cls = "seg", id = null;
+    if (c.status === "done" && c.text) { text = c.text; id = `seg-${n}`; segs.push({ id: n, start: c.start, end: c.end, speaker: "0", text: c.text }); n++; }
+    else if (c.status === "pending") { text = "Listening…"; cls += " pending"; }
+    else if (c.status === "silent" || (c.status === "done" && !c.text)) { text = "(quiet)"; cls += " pending"; }
+    else if (c.status === "skipped") { text = "(will be in the final transcript)"; cls += " pending"; }
+    else { text = "(could not caption this part, it will still be in the minutes)"; cls += " pending"; }
+    return h("div", { class: cls, id }, h("div", { class: "seg-who" }, h("span", {}, hms(c.start))), h("div", { class: "seg-text" }, text));
+  });
+  list.replaceChildren(...(rows.length ? rows : [h("p", { class: "reg-empty" }, "Waiting for the first half minute of sound…")]));
+  if (S.data) S.data.transcript.segments = segs;
+  if (nearBottom) list.scrollTop = list.scrollHeight;
 }
 
 function progressView(m) {
@@ -528,6 +793,7 @@ function missedPanel() {
   langSel.addEventListener("change", () => { S.lang = langSel.value; safeSet("ss_lang", S.lang); });
   const briefLang = () => (S.lang !== "auto" ? S.lang : (S.config.languages[meeting.detected_language] ? meeting.detected_language : "hi-IN"));
 
+  const isLive = meeting.status === "live";
   const briefBox = h("div", { class: "brief-box" });
   const briefBtn = h("button", { class: "btn green wide" }, "Listen to a one-minute summary");
   briefBtn.addEventListener("click", async () => {
@@ -535,14 +801,14 @@ function missedPanel() {
     briefBtn.textContent = "Preparing the summary…";
     try {
       const b = await postJSON(`/api/meetings/${meeting.id}/brief`, { language: briefLang() });
-      briefBox.replaceChildren(
+      setKids(briefBox,
         b.audio_url ? h("audio", { controls: true, autoplay: true, src: b.audio_url }) : null,
         h("details", { open: !b.audio_url }, h("summary", {}, "Read it instead"), h("p", {}, b.script)));
       briefBtn.textContent = "Listen in another language";
     } catch (e) { toast(e.message, true); briefBtn.textContent = "Listen to a one-minute summary"; }
     briefBtn.disabled = false;
   });
-  briefBox.append(briefBtn);
+  briefBox.append(isLive ? h("p", { style: { margin: 0 } }, "The one-minute summary will be ready when the meeting ends. You can already ask what has happened so far.") : briefBtn);
 
   const textarea = h("textarea", { placeholder: "Ask anything. For example: was the road approved? सड़क का क्या हुआ?", "aria-label": "Your question" });
   const thread = h("div", { class: "thread", "aria-live": "polite" });
@@ -606,7 +872,7 @@ function missedPanel() {
     } catch (e) { toast("Microphone not available: " + e.message, true); }
   });
 
-  const suggestions = h("div", { class: "suggest" }, (SUGGEST[meeting.meeting_type] || SUGGEST.general).map((q) =>
+  const suggestions = h("div", { class: "suggest" }, (isLive ? SUGGEST.live : (SUGGEST[meeting.meeting_type] || SUGGEST.general)).map((q) =>
     h("button", { class: "chip", type: "button", onclick: () => ask(q) }, q)));
 
   [...(S.data.qa || [])].reverse().forEach((a) => thread.append(qaCard(a)));

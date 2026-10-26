@@ -66,11 +66,13 @@ class SarvamService:
             return json.loads(outputs[0].read_text(encoding="utf-8"))
 
     # ---------- Saaras: short spoken question ----------
-    def transcribe_short(self, audio: bytes, filename: str = "question.webm") -> tuple[str, str | None]:
+    def transcribe_short(self, audio: bytes, filename: str = "question.webm",
+                         language_code: str = "unknown") -> tuple[str, str | None]:
+        """Up to ~30 s of audio: spoken questions and live caption chunks."""
         resp = self.client.speech_to_text.transcribe(
             file=(filename, audio),
             model=config.STT_MODEL,
-            language_code="unknown",
+            language_code=language_code or "unknown",
         )
         return resp.transcript, getattr(resp, "language_code", None)
 

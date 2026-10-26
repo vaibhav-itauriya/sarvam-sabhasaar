@@ -244,3 +244,88 @@ def test_strip_inline_refs():
     from app.pipeline import strip_inline_refs
     assert strip_inline_refs("டேங்கர் அனுப்பப்படும் (#6, #7).") == "டேங்கர் அனுப்பப்படும்."
     assert strip_inline_refs("Road deferred #21 to November [M2#4].") == "Road deferred to November."
+
+
+# ---------------- live recording ----------------
+def _chunk(seconds=25.0, silent=False):
+    from app.live import pcm_to_wav
+    if silent:
+        return pcm_to_wav(b"\x00\x00" * int(16000 * seconds))
+    import io as _io
+    import wave as _wave
+    with _wave.open(_io.BytesIO(_tone_wav(seconds, rate=16000))) as r:
+        return pcm_to_wav(r.readframes(r.getnframes()))
+
+
+def wait_captions(client, mid, n, timeout=10):
+    end = time.time() + timeout
+    while time.time() < end:
+        caps = client.get(f"/api/live/{mid}/captions").json()["captions"]
+        if sum(1 for c in caps if c["status"] in ("done", "silent", "failed")) >= n:
+            return caps
+        time.sleep(0.1)
+    raise AssertionError(caps)
+
+
+def test_live_tab_recording_end_to_end(client):
+    m = client.post("/api/live", data={"source": "tab", "meeting_type": "municipal", "body": "Live Ward",
+                                       "date": "2026-10-27", "language_code": "hi-IN"}).json()
+    mid = m["id"]
+    assert m["status"] == "live" and m["live_source"] == "tab"
+    # chunks arrive out of order and one is retried: offsets still follow seq order
+    assert client.post(f"/api/live/{mid}/chunk", files={"audio": ("c.wav", _chunk(), "audio/wav")}, data={"seq": 1}).status_code == 200
+    client.post(f"/api/live/{mid}/chunk", files={"audio": ("c.wav", _chunk(10), "audio/wav")}, data={"seq": 0})
+    client.post(f"/api/live/{mid}/chunk", files={"audio": ("c.wav", _chunk(), "audio/wav")}, data={"seq": 1})
+    client.post(f"/api/live/{mid}/chunk", files={"audio": ("c.wav", _chunk(5, silent=True), "audio/wav")}, data={"seq": 2})
+    caps = wait_captions(client, mid, 3)
+    assert [c["seq"] for c in caps] == [0, 1, 2]
+    assert caps[1]["start"] == 10.0 and caps[2]["status"] == "silent" and caps[0]["text"].startswith("लाइव")
+    assert [c for c in FAKE.calls if c[0] == "stt_short"][-1][3] == "hi-IN"
+
+    # someone who joined late asks while it is still recording
+    data = client.get(f"/api/meetings/{mid}").json()
+    assert data["meeting"]["status"] == "live" and len(data["transcript"]["segments"]) == 2
+    a = client.post(f"/api/meetings/{mid}/ask", json={"question": "अब तक क्या हुआ?"}).json()
+    assert a["status"] == "answered" and a["refs"][0]["seg"] == 1
+
+    st = client.post(f"/api/live/{mid}/stop").json()
+    assert st["status"] == "queued" and st["duration"] == 40.0
+    assert wait_ready(client, mid)["status"] == "ready"
+    data = client.get(f"/api/meetings/{mid}").json()
+    assert data["minutes"]["title"] == "Road meeting" and len(data["transcript"]["segments"]) == 3
+    assert not (store.mdir(mid) / "live").exists()
+    r = client.post(f"/api/live/{mid}/chunk", files={"audio": ("c.wav", _chunk(), "audio/wav")}, data={"seq": 9})
+    assert r.status_code == 409
+
+
+def test_live_rejects_bad_input(client):
+    mid = client.post("/api/live", data={"source": "mic"}).json()["id"]
+    r = client.post(f"/api/live/{mid}/chunk", files={"audio": ("c.wav", b"not audio", "audio/wav")}, data={"seq": 0})
+    assert r.status_code == 409
+    from app.live import pcm_to_wav
+    r = client.post(f"/api/live/{mid}/chunk", files={"audio": ("c.wav", pcm_to_wav(b"\x01\x00" * 48000, rate=48000), "audio/wav")}, data={"seq": 0})
+    assert r.status_code == 409 and "16000" in r.json()["detail"]
+    st = client.post(f"/api/live/{mid}/stop").json()
+    assert st["status"] == "failed" and "Nothing was recorded" in st["status_note"]
+    assert client.post("/api/live", data={"source": "link", "url": "http://127.0.0.1:8000/x.mp3"}).status_code == 400
+    assert client.post("/api/live", data={"source": "link", "url": "ftp://example.com/a"}).status_code == 400
+    assert client.post("/api/live", data={"source": "satellite"}).status_code == 400
+
+
+def test_live_link_recording(client, monkeypatch, tmp_path):
+    from app import live as live_mod
+    src = tmp_path / "stream.wav"
+    src.write_bytes(_tone_wav(60, rate=16000))  # 60 s "stream" arrives instantly, like a finished recording
+    monkeypatch.setattr(live_mod, "check_url", lambda u: u)
+    monkeypatch.setattr(live_mod, "resolve_stream", lambda u: str(src))
+    mid = client.post("/api/live", data={"source": "link", "url": "https://example.com/live.m3u8",
+                                         "body": "Link body"}).json()["id"]
+    st = wait_ready(client, mid)
+    assert st["status"] == "ready", st
+    m = client.get(f"/api/meetings/{mid}").json()["meeting"]
+    assert abs(m["duration"] - 60.0) < 0.5 and m["live_source"] == "link"
+
+
+def test_resolve_stream_direct_media():
+    from app.live import resolve_stream
+    assert resolve_stream("https://example.com/sansad/live.m3u8?token=1") == "https://example.com/sansad/live.m3u8?token=1"

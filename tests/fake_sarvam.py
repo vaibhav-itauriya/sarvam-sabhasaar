@@ -32,8 +32,11 @@ class FakeSarvam:
         return {"transcript": " ".join(e["transcript"] for e in entries), "language_code": "hi-IN",
                 "diarized_transcript": {"entries": entries}}
 
-    def transcribe_short(self, audio, filename="q.webm"):
-        self.calls.append(("stt_short", len(audio)))
+    def transcribe_short(self, audio, filename="q.webm", language_code="unknown"):
+        self.calls.append(("stt_short", len(audio), filename, language_code))
+        if filename.startswith("live-"):
+            n = sum(1 for c in self.calls if c[0] == "stt_short" and str(c[2]).startswith("live-"))
+            return f"लाइव हिस्सा {n}: पार्क की सफाई पर चर्चा।", "hi-IN"
         return "सड़क का क्या हुआ?", "hi-IN"
 
     def chat(self, messages, max_tokens=4096, json_mode=False, reasoning_effort="low"):

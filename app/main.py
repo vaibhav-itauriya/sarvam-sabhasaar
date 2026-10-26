@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import config, demo, pipeline, prompts, store
+from . import config, demo, live, pipeline, prompts, store
 from .sarvam_service import SarvamError, SarvamService
 
 @asynccontextmanager
@@ -78,6 +78,21 @@ def list_meetings():
     return store.list_meetings()
 
 
+def _meeting_record(mid, title, body, meeting_type, date, language_code, num_speakers, minutes_language,
+                    keyterms, status, source_name, **extra) -> dict:
+    return {
+        "id": mid, "title": title.strip(), "body": body.strip(),
+        "meeting_type": meeting_type if meeting_type in prompts.MEETING_TYPES else "general",
+        "date": date, "language_code": language_code or "unknown",
+        "num_speakers": int(num_speakers) if str(num_speakers).strip().isdigit() else None,
+        "minutes_language": minutes_language if minutes_language in config.LANGUAGES else "en-IN",
+        "keyterms": keyterms, "status": status,
+        "status_note": "Recording" if status == "live" else "Waiting to start",
+        "speakers": {}, "created_at": store.now(), "updated_at": store.now(),
+        "source_name": source_name, **extra,
+    }
+
+
 @app.post("/api/meetings")
 async def create_meeting(
     file: UploadFile = File(...),
@@ -98,16 +113,8 @@ async def create_meeting(
     original = d / f"original{suffix}"
     with open(original, "wb") as f:
         shutil.copyfileobj(file.file, f)
-    meeting = {
-        "id": mid, "title": title.strip(), "body": body.strip(),
-        "meeting_type": meeting_type if meeting_type in prompts.MEETING_TYPES else "general",
-        "date": date, "language_code": language_code or "unknown",
-        "num_speakers": int(num_speakers) if num_speakers.strip().isdigit() else None,
-        "minutes_language": minutes_language if minutes_language in config.LANGUAGES else "en-IN",
-        "keyterms": keyterms, "status": "queued", "status_note": "Waiting to start",
-        "speakers": {}, "created_at": store.now(), "updated_at": store.now(),
-        "source_name": file.filename,
-    }
+    meeting = _meeting_record(mid, title, body, meeting_type, date, language_code, num_speakers,
+                              minutes_language, keyterms, status="queued", source_name=file.filename)
     store.write(mid, "meeting", meeting)
     threading.Thread(target=pipeline.process_meeting, args=(svc, mid, original), daemon=True).start()
     return meeting
@@ -118,9 +125,10 @@ def get_meeting(mid: str):
     m = _meeting_or_404(mid)
     return {
         "meeting": m,
-        "transcript": store.read(mid, "transcript", {"segments": []}),
+        "transcript": {"segments": pipeline.meeting_segments(mid)},
         "minutes": store.read(mid, "minutes"),
         "qa": store.read(mid, "qa", []),
+        "captions": live.captions(mid) if m.get("status") == "live" else [],
         "others_in_body": sum(1 for x in store.list_meetings()
                               if m.get("body") and x.get("body") == m.get("body") and x["id"] != mid),
     }
@@ -305,6 +313,71 @@ def export_md(mid: str):
     if mt.get("disclaimer"):
         lines.append(mt["disclaimer"])
     return "\n".join(lines)
+
+
+# ---------------- live recording ----------------
+LIVE_SOURCES = {"tab": "Online meeting (tab audio)", "mic": "Microphone in the room", "link": "Stream link"}
+
+
+@app.post("/api/live")
+def start_live(
+    source: str = Form("mic"),
+    url: str = Form(""),
+    title: str = Form(""),
+    body: str = Form(""),
+    meeting_type: str = Form("gram_sabha"),
+    date: str = Form(""),
+    language_code: str = Form("unknown"),
+    num_speakers: str = Form(""),
+    minutes_language: str = Form("en-IN"),
+    keyterms: str = Form(""),
+):
+    if source not in LIVE_SOURCES:
+        raise HTTPException(400, "Unknown recording source")
+    svc = get_service()
+    if source == "link":
+        try:
+            url = live.check_url(url)
+        except live.LiveError as e:
+            raise HTTPException(400, str(e))
+    mid = store.new_id()
+    store.mdir(mid).mkdir(parents=True)
+    meeting = _meeting_record(mid, title, body, meeting_type, date, language_code, num_speakers, minutes_language,
+                              keyterms, status="live", source_name=url if source == "link" else LIVE_SOURCES[source],
+                              live_source=source, live_started_at=store.now())
+    store.write(mid, "meeting", meeting)
+    store.write(mid, "captions", [])
+    if source == "link":
+        live.start_link(svc, mid, url)
+    return meeting
+
+
+@app.post("/api/live/{mid}/chunk")
+async def live_chunk(mid: str, audio: UploadFile = File(...), seq: int = Form(...)):
+    _meeting_or_404(mid)
+    data = await audio.read()
+    if len(data) > 8_000_000:
+        raise HTTPException(413, "Chunk too large")
+    try:
+        return live.add_chunk(get_service(), mid, seq, data)
+    except live.LiveError as e:
+        raise HTTPException(409, str(e))
+
+
+@app.get("/api/live/{mid}/captions")
+def live_captions(mid: str):
+    m = _meeting_or_404(mid)
+    return {"status": m["status"], "status_note": m.get("status_note", ""), "duration": m.get("duration"),
+            "captions": live.captions(mid)}
+
+
+@app.post("/api/live/{mid}/stop")
+def live_stop(mid: str):
+    _meeting_or_404(mid)
+    try:
+        return live.stop(get_service(), mid)
+    except Exception as e:
+        _err(e)
 
 
 # ---------------- frontend ----------------

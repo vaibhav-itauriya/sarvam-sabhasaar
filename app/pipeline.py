@@ -261,9 +261,20 @@ def build_minutes(svc, mid: str) -> None:
 
 
 # ---------------- ask ----------------
+def meeting_segments(mid: str) -> list[dict]:
+    """The final transcript, or the live captions while a meeting is still being recorded."""
+    tr = store.read(mid, "transcript")
+    if tr and tr.get("segments"):
+        return tr["segments"]
+    caps = store.read(mid, "captions", [])
+    return [{"id": i, "start": c["start"], "end": c["end"], "speaker": "0", "text": c["text"]}
+            for i, c in enumerate(sorted((c for c in caps if c.get("text")), key=lambda c: c["seq"]))]
+
+
+
 def _context_for_meeting(svc, mid: str, question: str, prefix: str = "") -> str:
     meta = store.read(mid, "meeting")
-    segments = store.read(mid, "transcript", {}).get("segments", [])
+    segments = meeting_segments(mid)
     minutes = store.read(mid, "minutes", {})
     speakers = meta.get("speakers") or {}
     header = (f"=== {prefix or 'Meeting'}: {meta.get('title')} | {meta.get('body') or ''} | "
@@ -287,8 +298,8 @@ def _context_for_meeting(svc, mid: str, question: str, prefix: str = "") -> str:
 
 def ask(svc, mid: str, question: str, language: str | None = None, scope: str = "meeting") -> dict:
     meta = store.read(mid, "meeting")
-    if meta.get("status") != "ready":
-        raise SarvamError("This meeting is still being processed")
+    if meta.get("status") not in ("ready", "live"):
+        raise SarvamError("This meeting is still being processed. Try again in a minute.")
     if not language or language == "auto":
         language = detect_script_lang(question)  # None for English or Hinglish, decided by the model
     lang_hint = lang_name(language) if language else None
@@ -309,7 +320,9 @@ def ask(svc, mid: str, question: str, language: str | None = None, scope: str = 
     else:
         labels = {mid: ""}
         context = _context_for_meeting(svc, mid, question)
-        scope_note = ""
+        scope_note = ("The meeting is still going on. The records are live captions so far, without speaker names, "
+                      "so say what has happened so far and do not guess who said it. "
+                      if meta.get("status") == "live" else "")
     reply = svc.chat(prompts.answer_messages(question, context, scope_note, history, lang_hint,
                                              meta.get("meeting_type")), max_tokens=4000, json_mode=True)
     try:
@@ -367,7 +380,7 @@ def answer_language(data: dict, language: str | None) -> str:
 
 
 def _segment(mid: str, seg_id: int) -> dict | None:
-    segs = store.read(mid, "transcript", {}).get("segments", [])
+    segs = meeting_segments(mid)
     return segs[seg_id] if 0 <= seg_id < len(segs) else None
 
 
