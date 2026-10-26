@@ -1,0 +1,704 @@
+{
+ "meeting": {
+  "id": "demogramsabha",
+  "title": "Gram Sabha on Gandhi Jayanti",
+  "body": "Rampur Gram Panchayat, Bilhaur",
+  "meeting_type": "gram_sabha",
+  "date": "2026-10-02",
+  "language_code": "hi-IN",
+  "detected_language": "hi-IN",
+  "num_speakers": 5,
+  "minutes_language": "en-IN",
+  "keyterms": "MGNREGA, Jal Jeevan Mission, FTO, CDPO",
+  "status": "ready",
+  "status_note": "",
+  "duration": 572.0,
+  "audio_file": null,
+  "audio_sha256": null,
+  "demo": true,
+  "speakers": {
+   "0": {
+    "name": "Ramesh Yadav",
+    "role": "Sarpanch (Pradhan)",
+    "named_by": "model"
+   },
+   "1": {
+    "name": "Sunita Verma",
+    "role": "Panchayat Secretary",
+    "named_by": "model"
+   },
+   "2": {
+    "name": "Kamla Devi",
+    "role": "Villager, ward 3",
+    "named_by": "model"
+   },
+   "3": {
+    "name": "Suresh Kumar",
+    "role": "MGNREGA worker",
+    "named_by": "model"
+   },
+   "4": {
+    "name": "Imran Ali",
+    "role": "Ward member, ward 5",
+    "named_by": "model"
+   }
+  },
+  "created_at": "2026-10-02T12:00:00+00:00",
+  "updated_at": "2026-10-02T12:00:00+00:00",
+  "source_name": "sample (no audio until you run scripts/make_demo_audio.py)"
+ },
+ "transcript": {
+  "segments": [
+   {
+    "id": 0,
+    "start": 0.0,
+    "end": 12.5,
+    "speaker": "0",
+    "text": "सभी को नमस्कार। आज 2 अक्टूबर है, गांधी जयंती के दिन ये ग्राम सभा की बैठक शुरू करते हैं। सचिव जी, कोरम पूरा है क्या?"
+   },
+   {
+    "id": 1,
+    "start": 14.0,
+    "end": 29.5,
+    "speaker": "1",
+    "text": "जी प्रधान जी, रजिस्टर के हिसाब से 212 लोग मौजूद हैं, कोरम के लिए 150 चाहिए थे, तो कोरम पूरा है। पिछली बैठक की कार्यवाही मैं पढ़ देती हूँ।"
+   },
+   {
+    "id": 2,
+    "start": 31.0,
+    "end": 56.5,
+    "speaker": "1",
+    "text": "पिछली बैठक में तय हुआ था कि वार्ड 3 का हैंडपंप ठीक होगा और मनरेगा में तालाब की खुदाई का काम शुरू होगा। तालाब का काम शुरू हो गया है, हैंडपंप का काम अभी बाकी है।"
+   },
+   {
+    "id": 3,
+    "start": 58.0,
+    "end": 82.5,
+    "speaker": "2",
+    "text": "प्रधान जी, यही तो हम कह रहे हैं। वार्ड 3 का हैंडपंप तीन महीने से खराब पड़ा है। औरतों को रोज़ एक किलोमीटर दूर से पानी लाना पड़ता है। जल जीवन मिशन की पाइपलाइन भी हमारी गली तक नहीं आई।"
+   },
+   {
+    "id": 4,
+    "start": 84.0,
+    "end": 104.5,
+    "speaker": "0",
+    "text": "कमला जी, आपकी बात सही है। हैंडपंप के लिए मिस्त्री को बोला था पर पार्ट्स नहीं मिले। जल जीवन मिशन वालों से बात हुई है, उन्होंने कहा है कि वार्ड 3 का कनेक्शन दिसंबर तक हो जाएगा।"
+   },
+   {
+    "id": 5,
+    "start": 106.0,
+    "end": 114.5,
+    "speaker": "2",
+    "text": "दिसंबर तो बहुत दूर है। तब तक क्या करें? कम से कम टैंकर भेज दीजिए।"
+   },
+   {
+    "id": 6,
+    "start": 116.0,
+    "end": 136.5,
+    "speaker": "0",
+    "text": "ठीक है। जब तक हैंडपंप ठीक नहीं होता, हफ्ते में दो दिन, मंगलवार और शुक्रवार को टैंकर वार्ड 3 में जाएगा। और हैंडपंप 15 दिन के अंदर ठीक होगा, ये ज़िम्मेदारी इमरान भाई आप देखेंगे।"
+   },
+   {
+    "id": 7,
+    "start": 138.0,
+    "end": 148.5,
+    "speaker": "4",
+    "text": "जी प्रधान जी, मैं ब्लॉक से पार्ट्स मंगवा लूंगा। 15 दिन में चालू करवा दूंगा।"
+   },
+   {
+    "id": 8,
+    "start": 150.0,
+    "end": 174.5,
+    "speaker": "3",
+    "text": "प्रधान जी, मेरा सवाल मनरेगा की मज़दूरी का है। हम 38 लोगों ने अगस्त में तालाब पर 14 दिन काम किया, अभी तक पैसा खाते में नहीं आया। दो महीने हो गए।"
+   },
+   {
+    "id": 9,
+    "start": 176.0,
+    "end": 203.5,
+    "speaker": "1",
+    "text": "सुरेश जी, मैंने चेक किया था। मस्टर रोल ब्लॉक को भेज दिया गया है, लेकिन 11 लोगों के आधार बैंक खाते से लिंक नहीं हैं, इसलिए उनका पेमेंट फेल हुआ। बाकी 27 लोगों का FTO बन गया है, पैसा इस हफ्ते में आ जाना चाहिए।"
+   },
+   {
+    "id": 10,
+    "start": 205.0,
+    "end": 213.5,
+    "speaker": "3",
+    "text": "तो जिन 11 लोगों का लिंक नहीं है, वो क्या करें? किसी को बताया ही नहीं गया।"
+   },
+   {
+    "id": 11,
+    "start": 215.0,
+    "end": 234.5,
+    "speaker": "1",
+    "text": "उनके लिए पंचायत भवन में शनिवार को कैंप लगाएंगे, बैंक मित्र आएंगे और आधार सीडिंग करवा देंगे। लिस्ट मैं आज नोटिस बोर्ड पर लगा दूंगी।"
+   },
+   {
+    "id": 12,
+    "start": 236.0,
+    "end": 260.5,
+    "speaker": "0",
+    "text": "ठीक है, ये प्रस्ताव लिख लीजिए। शनिवार 10 अक्टूबर को आधार सीडिंग कैंप पंचायत भवन में होगा। और अगर 20 अक्टूबर तक बाकी 27 लोगों का पैसा नहीं आता, तो मैं खुद बीडीओ साहब से मिलूंगा।"
+   },
+   {
+    "id": 13,
+    "start": 262.0,
+    "end": 282.5,
+    "speaker": "4",
+    "text": "अब वार्ड 5 की बात कर लें प्रधान जी। वार्ड 5 की नाली पूरी चोक है, बरसात में पानी घरों में घुस गया था। और वहाँ की सीसी रोड भी टूटी हुई है।"
+   },
+   {
+    "id": 14,
+    "start": 284.0,
+    "end": 308.5,
+    "speaker": "1",
+    "text": "पंद्रहवें वित्त आयोग से इस साल पंचायत को 4 लाख 80 हज़ार रुपये मिले हैं। इसमें से 2 लाख 10 हज़ार पहले ही सोलर लाइट और स्कूल की बाउंड्री में लग चुके हैं। 2 लाख 70 हज़ार बचे हैं।"
+   },
+   {
+    "id": 15,
+    "start": 310.0,
+    "end": 328.5,
+    "speaker": "4",
+    "text": "तो नाली और सड़क दोनों का काम इसी पैसे से हो सकता है। एस्टीमेट मैंने बनवाया है, नाली का 1 लाख 20 हज़ार और रोड का 1 लाख 90 हज़ार।"
+   },
+   {
+    "id": 16,
+    "start": 330.0,
+    "end": 350.5,
+    "speaker": "0",
+    "text": "ये तो 3 लाख 10 हज़ार हो गया, हमारे पास 2 लाख 70 हज़ार ही है। मेरा सुझाव है कि पहले नाली बनाई जाए, क्योंकि वो ज़्यादा ज़रूरी है। सड़क का प्रस्ताव अगले साल की कार्ययोजना में डालेंगे।"
+   },
+   {
+    "id": 17,
+    "start": 352.0,
+    "end": 358.5,
+    "speaker": "2",
+    "text": "सड़क भी ज़रूरी है प्रधान जी, बच्चे उसी रास्ते से स्कूल जाते हैं।"
+   },
+   {
+    "id": 18,
+    "start": 360.0,
+    "end": 370.5,
+    "speaker": "0",
+    "text": "सही है, तो हाथ उठाकर बता दीजिए। जो लोग चाहते हैं कि पहले नाली बने, वो हाथ उठाएं।"
+   },
+   {
+    "id": 19,
+    "start": 372.0,
+    "end": 390.5,
+    "speaker": "1",
+    "text": "ज़्यादातर लोगों ने हाथ उठाया है। मैं लिख रही हूँ, बहुमत से प्रस्ताव पास हुआ कि वार्ड 5 की नाली 1 लाख 20 हज़ार रुपये में पंद्रहवें वित्त आयोग के फंड से बनेगी।"
+   },
+   {
+    "id": 20,
+    "start": 392.0,
+    "end": 402.5,
+    "speaker": "4",
+    "text": "और बचे हुए 1 लाख 50 हज़ार से सड़क का कुछ हिस्सा, कम से कम स्कूल वाला 200 मीटर, बन सकता है क्या?"
+   },
+   {
+    "id": 21,
+    "start": 404.0,
+    "end": 416.5,
+    "speaker": "0",
+    "text": "इसका फैसला अभी नहीं करते। जेई साहब से नापजोख करवा के अगली बैठक में रखेंगे।"
+   },
+   {
+    "id": 22,
+    "start": 418.0,
+    "end": 438.5,
+    "speaker": "1",
+    "text": "अगला विषय प्रधानमंत्री आवास योजना का है। सर्वे के बाद 23 परिवारों की लिस्ट बनी है। ग्राम सभा को इस लिस्ट का सत्यापन करना है।"
+   },
+   {
+    "id": 23,
+    "start": 440.0,
+    "end": 460.5,
+    "speaker": "3",
+    "text": "इस लिस्ट में रामकिशोर जी का नाम है, उनका तो पक्का मकान पहले से है। और विधवा शांति देवी का नाम नहीं है, उनका घर कच्चा है।"
+   },
+   {
+    "id": 24,
+    "start": 462.0,
+    "end": 484.5,
+    "speaker": "0",
+    "text": "ये गंभीर बात है। सचिव जी, लिस्ट को आज ही नोटिस बोर्ड पर लगाइए, सात दिन तक कोई भी आपत्ति दे सकता है। शांति देवी का नाम जोड़ने के लिए आवेदन आज ही ले लीजिए।"
+   },
+   {
+    "id": 25,
+    "start": 486.0,
+    "end": 502.5,
+    "speaker": "1",
+    "text": "जी, 23 नामों की लिस्ट सात दिन के लिए सार्वजनिक की जाएगी, आपत्तियां 9 अक्टूबर तक ली जाएंगी। उसके बाद ही लिस्ट ब्लॉक को भेजेंगे।"
+   },
+   {
+    "id": 26,
+    "start": 504.0,
+    "end": 512.5,
+    "speaker": "2",
+    "text": "एक बात और, आंगनवाड़ी में बच्चों का खाना कई दिन से नहीं बना। उसका क्या?"
+   },
+   {
+    "id": 27,
+    "start": 514.0,
+    "end": 526.5,
+    "speaker": "0",
+    "text": "इसके बारे में मुझे जानकारी नहीं थी। मैं सीडीपीओ ऑफिस से बात करूंगा, अगली बैठक में जवाब दूंगा।"
+   },
+   {
+    "id": 28,
+    "start": 528.0,
+    "end": 558.5,
+    "speaker": "1",
+    "text": "तो आज के मुख्य प्रस्ताव मैं पढ़ देती हूँ। एक, वार्ड 3 में हफ्ते में दो दिन टैंकर और हैंडपंप 15 दिन में ठीक। दो, 10 अक्टूबर को आधार सीडिंग कैंप। तीन, वार्ड 5 की नाली 1 लाख 20 हज़ार में। चार, आवास सूची सात दिन सार्वजनिक, आपत्तियां 9 अक्टूबर तक।"
+   },
+   {
+    "id": 29,
+    "start": 560.0,
+    "end": 572.0,
+    "speaker": "0",
+    "text": "ठीक है। अगली ग्राम सभा 15 नवंबर को होगी। उसमें सड़क, आंगनवाड़ी और हैंडपंप की प्रगति पर बात होगी। सबका धन्यवाद।"
+   }
+  ],
+  "language_code": "hi-IN"
+ },
+ "minutes": {
+  "title": "Gram Sabha on Gandhi Jayanti",
+  "date_mentioned": "2 October",
+  "one_line": "The Gram Sabha met with quorum (212 present) and passed four resolutions on water for ward 3, unpaid MGNREGA wages, a drain for ward 5 and verifying the PM Awas list, while the ward 5 road was deferred.",
+  "summary": [
+   {
+    "text": "Quorum was met with 212 people present against 150 needed. Of last meeting's two decisions, the pond work started but the ward 3 hand pump is still not fixed.",
+    "refs": [
+     1,
+     2
+    ]
+   },
+   {
+    "text": "Kamla Devi said the ward 3 hand pump has been broken for three months and women walk 1 km for water. Jal Jeevan Mission says ward 3 will be connected by December.",
+    "refs": [
+     3,
+     4
+    ]
+   },
+   {
+    "text": "Until the pump is fixed, a tanker will go to ward 3 every Tuesday and Friday. Ward member Imran Ali will get the pump working within 15 days.",
+    "refs": [
+     6,
+     7
+    ]
+   },
+   {
+    "text": "38 MGNREGA workers have not been paid for 14 days of pond work done in August. 27 payments are processed (FTO generated) and should arrive this week. 11 failed because Aadhaar is not linked to their bank account.",
+    "refs": [
+     8,
+     9
+    ]
+   },
+   {
+    "text": "The Panchayat has ₹2.7 lakh left of its ₹4.8 lakh 15th Finance Commission grant. The drain (₹1.2 lakh) and road (₹1.9 lakh) together need ₹3.1 lakh, so the house voted to build the drain first.",
+    "refs": [
+     14,
+     15,
+     16,
+     19
+    ]
+   },
+   {
+    "text": "The PM Awas list of 23 families was challenged: one listed person already has a pucca house and a widow with a kutcha house is missing. The list goes on the notice board for objections.",
+    "refs": [
+     22,
+     23,
+     24,
+     25
+    ]
+   },
+   {
+    "text": "A complaint that the anganwadi has not cooked meals for children for several days was not answered. The Sarpanch will ask the CDPO office.",
+    "refs": [
+     26,
+     27
+    ]
+   }
+  ],
+  "decisions": [
+   {
+    "text": "Tanker to ward 3 on Tuesdays and Fridays until the hand pump is repaired, and the hand pump to be repaired within 15 days",
+    "outcome": "agreed",
+    "refs": [
+     6,
+     28
+    ]
+   },
+   {
+    "text": "Aadhaar seeding camp at the Panchayat Bhawan on Saturday 10 October for the 11 workers whose payments failed",
+    "outcome": "passed",
+    "refs": [
+     12,
+     28
+    ]
+   },
+   {
+    "text": "Ward 5 drain to be built for ₹1.2 lakh from the 15th Finance Commission fund",
+    "outcome": "passed by majority show of hands",
+    "refs": [
+     18,
+     19,
+     28
+    ]
+   },
+   {
+    "text": "PM Awas list of 23 families to be displayed publicly for seven days, objections until 9 October, then sent to the block",
+    "outcome": "passed",
+    "refs": [
+     24,
+     25,
+     28
+    ]
+   },
+   {
+    "text": "Ward 5 CC road, including the 200 m stretch near the school",
+    "outcome": "deferred to next meeting after JE measurement",
+    "refs": [
+     16,
+     20,
+     21
+    ]
+   }
+  ],
+  "actions": [
+   {
+    "task": "Get hand pump parts from the block and repair the ward 3 hand pump",
+    "owner": "Imran Ali (ward member)",
+    "deadline": "within 15 days",
+    "refs": [
+     6,
+     7
+    ]
+   },
+   {
+    "task": "Put the list of 11 workers with unlinked Aadhaar on the notice board",
+    "owner": "Panchayat Secretary",
+    "deadline": "today (2 October)",
+    "refs": [
+     11
+    ]
+   },
+   {
+    "task": "Meet the BDO if the 27 pending MGNREGA payments have not arrived",
+    "owner": "Sarpanch",
+    "deadline": "after 20 October",
+    "refs": [
+     12
+    ]
+   },
+   {
+    "task": "Display the PM Awas list and take Shanti Devi's application to be added",
+    "owner": "Panchayat Secretary",
+    "deadline": "today, objections until 9 October",
+    "refs": [
+     24,
+     25
+    ]
+   },
+   {
+    "task": "Get the JE to measure the ward 5 road",
+    "owner": "Sarpanch",
+    "deadline": "before 15 November",
+    "refs": [
+     21
+    ]
+   },
+   {
+    "task": "Ask the CDPO office why anganwadi meals stopped",
+    "owner": "Sarpanch",
+    "deadline": "next meeting",
+    "refs": [
+     27
+    ]
+   }
+  ],
+  "topics": [
+   {
+    "title": "Quorum and last meeting's decisions",
+    "start_ref": 0,
+    "summary": "212 present, pond work started, pump still pending."
+   },
+   {
+    "title": "Water in ward 3",
+    "start_ref": 3,
+    "summary": "Broken hand pump, Jal Jeevan Mission by December, tanker twice a week."
+   },
+   {
+    "title": "Unpaid MGNREGA wages",
+    "start_ref": 8,
+    "summary": "27 payments coming, 11 blocked by Aadhaar seeding, camp on 10 October."
+   },
+   {
+    "title": "Ward 5 drain and road",
+    "start_ref": 13,
+    "summary": "₹2.7 lakh left, drain approved, road deferred."
+   },
+   {
+    "title": "PM Awas list verification",
+    "start_ref": 22,
+    "summary": "23 names, errors raised, open for objections till 9 October."
+   },
+   {
+    "title": "Anganwadi meals",
+    "start_ref": 26,
+    "summary": "Complaint raised, answer next meeting."
+   },
+   {
+    "title": "Resolutions read out and next date",
+    "start_ref": 28,
+    "summary": "Four resolutions, next Gram Sabha on 15 November."
+   }
+  ],
+  "speakers": [
+   {
+    "id": "0",
+    "suggested_name": "Ramesh Yadav",
+    "role": "Sarpanch (Pradhan)",
+    "key_points": [
+     "Chaired the meeting",
+     "Proposed drain before road",
+     "Will meet BDO if wages are late"
+    ]
+   },
+   {
+    "id": "1",
+    "suggested_name": "Sunita Verma",
+    "role": "Panchayat Secretary",
+    "key_points": [
+     "Confirmed quorum",
+     "Explained MGNREGA payment failures",
+     "Read out the resolutions"
+    ]
+   },
+   {
+    "id": "2",
+    "suggested_name": "Kamla Devi",
+    "role": "Villager, ward 3",
+    "key_points": [
+     "Raised the broken hand pump",
+     "Asked for a tanker",
+     "Raised anganwadi meals"
+    ]
+   },
+   {
+    "id": "3",
+    "suggested_name": "Suresh Kumar",
+    "role": "MGNREGA worker",
+    "key_points": [
+     "Raised two months of unpaid wages",
+     "Flagged errors in the PM Awas list"
+    ]
+   },
+   {
+    "id": "4",
+    "suggested_name": "Imran Ali",
+    "role": "Ward member, ward 5",
+    "key_points": [
+     "Will repair the hand pump",
+     "Asked for drain and road in ward 5"
+    ]
+   }
+  ],
+  "extras": {
+   "funds": [
+    {
+     "text": "15th Finance Commission grant this year: ₹4.8 lakh, of which ₹2.1 lakh spent on solar lights and school boundary wall, ₹2.7 lakh left",
+     "refs": [
+      14
+     ]
+    },
+    {
+     "text": "Estimates: ward 5 drain ₹1.2 lakh, ward 5 CC road ₹1.9 lakh",
+     "refs": [
+      15
+     ]
+    },
+    {
+     "text": "MGNREGA: 38 workers, 14 days of pond work in August, 27 payments processed",
+     "refs": [
+      8,
+      9
+     ]
+    },
+    {
+     "text": "Jal Jeevan Mission: ward 3 tap connection promised by December",
+     "refs": [
+      4
+     ]
+    }
+   ],
+   "complaints": [
+    {
+     "text": "Kamla Devi: ward 3 hand pump broken for three months. Reply: tanker twice a week, repair in 15 days",
+     "refs": [
+      3,
+      6
+     ]
+    },
+    {
+     "text": "Suresh Kumar: MGNREGA wages unpaid for two months. Reply: 27 payments this week, camp for the other 11",
+     "refs": [
+      8,
+      9,
+      11
+     ]
+    },
+    {
+     "text": "Suresh Kumar: PM Awas list includes a pucca house owner and leaves out widow Shanti Devi. Reply: list opened for objections",
+     "refs": [
+      23,
+      24
+     ]
+    },
+    {
+     "text": "Kamla Devi: anganwadi meals not cooked for days. Reply: Sarpanch was not aware, will check",
+     "refs": [
+      26,
+      27
+     ]
+    }
+   ],
+   "attendance": [
+    {
+     "text": "212 present, quorum of 150 met",
+     "refs": [
+      1
+     ]
+    }
+   ]
+  },
+  "open_issues": [
+   {
+    "text": "Ward 5 road, including the 200 m school stretch, not funded yet",
+    "refs": [
+     16,
+     20,
+     21
+    ]
+   },
+   {
+    "text": "Anganwadi meals complaint not answered",
+    "refs": [
+     27
+    ]
+   },
+   {
+    "text": "Ward 3 depends on a December Jal Jeevan Mission connection for a lasting fix",
+    "refs": [
+     4,
+     5
+    ]
+   }
+  ]
+ },
+ "qa": [
+  {
+   "question": "Ward 3 ke handpump ka kya hua?",
+   "answer": "Handpump abhi theek nahi hua hai. Pradhan ji ne kaha ki jab tak woh theek nahi hota, ward 3 mein har Mangalvaar aur Shukravaar tanker aayega. Ward member Imran Ali ne 15 din ke andar handpump chalu karwane ki zimmedari li hai. Pakka hal Jal Jeevan Mission ka connection hai, jo December tak aana hai.",
+   "status": "answered",
+   "language_code": "hi-IN",
+   "refs": [
+    {
+     "meeting_id": "demogramsabha",
+     "seg": 6,
+     "start": 116.0,
+     "label": "00:01:56"
+    },
+    {
+     "meeting_id": "demogramsabha",
+     "seg": 7,
+     "start": 138.0,
+     "label": "00:02:18"
+    },
+    {
+     "meeting_id": "demogramsabha",
+     "seg": 4,
+     "start": 84.0,
+     "label": "00:01:24"
+    }
+   ],
+   "follow_ups": [
+    "Tanker kis din aayega?",
+    "Jal Jeevan Mission ka connection kab tak?"
+   ],
+   "scope": "meeting",
+   "asked_at": "2026-10-03T09:12:00+00:00"
+  },
+  {
+   "question": "मेरा पेमेंट फेल हुआ है, मुझे कहाँ जाना है?",
+   "answer": "अगर आपका मनरेगा पेमेंट आधार लिंक न होने की वजह से फेल हुआ है, तो शनिवार 10 अक्टूबर को पंचायत भवन में कैंप लगेगा। वहाँ बैंक मित्र आधार सीडिंग करेंगे। जिन 11 लोगों का पेमेंट फेल हुआ है, उनकी लिस्ट सचिव जी नोटिस बोर्ड पर लगाएंगी, उसमें अपना नाम देख लीजिए।",
+   "status": "answered",
+   "language_code": "hi-IN",
+   "refs": [
+    {
+     "meeting_id": "demogramsabha",
+     "seg": 9,
+     "start": 176.0,
+     "label": "00:02:56"
+    },
+    {
+     "meeting_id": "demogramsabha",
+     "seg": 11,
+     "start": 215.0,
+     "label": "00:03:35"
+    },
+    {
+     "meeting_id": "demogramsabha",
+     "seg": 12,
+     "start": 236.0,
+     "label": "00:03:56"
+    }
+   ],
+   "follow_ups": [
+    "बाकी 27 लोगों का पैसा कब आएगा?",
+    "अगर 20 अक्टूबर तक पैसा न आए तो?"
+   ],
+   "scope": "meeting",
+   "asked_at": "2026-10-03T10:40:00+00:00"
+  },
+  {
+   "question": "Was the road near the school approved?",
+   "answer": "No. The meeting only approved the ward 5 drain for ₹1.2 lakh, by a show of hands, because there was not enough money for both. Imran Ali asked whether the 200 metre stretch near the school could be built from the remaining money, but the Sarpanch said the JE will measure it first and it will come up at the next Gram Sabha on 15 November.",
+   "status": "answered",
+   "language_code": "en-IN",
+   "refs": [
+    {
+     "meeting_id": "demogramsabha",
+     "seg": 16,
+     "start": 330.0,
+     "label": "00:05:30"
+    },
+    {
+     "meeting_id": "demogramsabha",
+     "seg": 19,
+     "start": 372.0,
+     "label": "00:06:12"
+    },
+    {
+     "meeting_id": "demogramsabha",
+     "seg": 20,
+     "start": 392.0,
+     "label": "00:06:32"
+    },
+    {
+     "meeting_id": "demogramsabha",
+     "seg": 21,
+     "start": 404.0,
+     "label": "00:06:44"
+    }
+   ],
+   "follow_ups": [
+    "How much money is left after the drain?",
+    "When is the next Gram Sabha?"
+   ],
+   "scope": "meeting",
+   "asked_at": "2026-10-03T13:05:00+00:00"
+  }
+ ]
+}

@@ -1,0 +1,6 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+sarvamai>=0.1.39
+python-dotenv>=1.0
+segno>=1.6
