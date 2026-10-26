@@ -1,4 +1,5 @@
 """Run: python -m pytest -q   (uses a fake Sarvam service, no key or network needed)"""
+import json
 import os
 import sys
 import tempfile
@@ -143,3 +144,39 @@ def test_helpers():
     with wave.open(io.BytesIO(w)) as r:
         assert abs(r.getnframes() / r.getframerate() - 0.75) < 0.01
     assert pipeline.hms(3725) == "01:02:05"
+
+
+def test_chat_retries_empty_answer():
+    from types import SimpleNamespace as NS
+    from app.sarvam_service import SarvamService
+    replies = ["", "", '{"answer": "ok"}']
+    seen = []
+
+    class Client:
+        class chat:
+            @staticmethod
+            def completions(**kw):
+                seen.append(kw)
+                return NS(choices=[NS(message=NS(content=replies[len(seen) - 1]), finish_reason="length")])
+
+    svc = SarvamService.__new__(SarvamService)
+    svc.client = Client
+    assert svc.chat([{"role": "user", "content": "x"}], max_tokens=2000, json_mode=True) == '{"answer": "ok"}'
+    assert seen[1]["max_tokens"] == 6000 and "response_format" not in seen[2]
+
+
+def test_plain_text_answer_is_kept(client, monkeypatch):
+    mid = upload(client, body="Plain")
+    wait_ready(client, mid)
+    real = FAKE.chat
+    monkeypatch.setattr(FAKE, "chat", lambda m, **k: "The road got two lakh rupees (#1)."
+                        if "help people who could not attend" in m[0]["content"] else real(m, **k))
+    a = client.post(f"/api/meetings/{mid}/ask", json={"question": "road?"}).json()
+    assert a["answer"] == "The road got two lakh rupees." and [r["seg"] for r in a["refs"]] == [1]
+
+
+def test_last_json_object():
+    from app.sarvam_service import last_json_object
+    t = 'thinking {"draft": 1} more thoughts... final: {"answer": "x", "refs": ["#1"], "meta": {"a": 1}} done'
+    assert json.loads(last_json_object(t))["answer"] == "x"
+    assert last_json_object("no json here") is None

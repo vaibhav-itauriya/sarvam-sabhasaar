@@ -309,8 +309,14 @@ def ask(svc, mid: str, question: str, language: str | None = None, scope: str = 
         context = _context_for_meeting(svc, mid, question)
         scope_note = ""
     reply = svc.chat(prompts.answer_messages(question, context, scope_note, history, lang_hint,
-                                             meta.get("meeting_type")), max_tokens=2000, json_mode=True)
-    data = parse_json(reply)
+                                             meta.get("meeting_type")), max_tokens=4000, json_mode=True)
+    try:
+        data = parse_json(reply)
+        if not isinstance(data, dict) or not data.get("answer"):
+            raise SarvamError("no answer field")
+    except Exception:  # model replied in plain text: still show it, and keep any #refs it wrote
+        data = {"answer": re.sub(r"\s*\(?(M\d+)?#\d+\)?", "", reply).strip(),
+                "refs": re.findall(r"(?:M\d+)?#\d+", reply)}
     inv = {v: k for k, v in labels.items()}
     refs = []
     for r in data.get("refs") or []:

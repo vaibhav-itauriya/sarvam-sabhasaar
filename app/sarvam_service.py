@@ -87,11 +87,30 @@ class SarvamService:
             kwargs["reasoning_effort"] = reasoning_effort
         if json_mode:
             kwargs["response_format"] = {"type": "json_object"}
-        resp = self.client.chat.completions(**kwargs)
-        content = resp.choices[0].message.content or ""
-        if not content.strip():
-            raise SarvamError("Sarvam-105B returned an empty answer (try a larger max_tokens)")
-        return content
+        # sarvam-105b reasons before answering and the reasoning counts against max_tokens,
+        # so an answer can come back empty. Retry once with more room, then once without JSON mode.
+        attempts = [kwargs, {**kwargs, "max_tokens": max(max_tokens * 2, 6000)}]
+        if json_mode:
+            attempts.append({k: v for k, v in attempts[1].items() if k != "response_format"})
+        last = ""
+        for i, kw in enumerate(attempts):
+            resp = self.client.chat.completions(**kw)
+            choice = resp.choices[0]
+            content = (choice.message.content or "").strip()
+            reasoning = (getattr(choice.message, "reasoning_content", None) or "").strip()
+            if not content and json_mode and "{" in reasoning:
+                # some replies put the final JSON at the end of the reasoning instead of the content
+                content = last_json_object(reasoning) or ""
+            usage = getattr(resp, "usage", None)
+            print(f"[sabhasaar] 105B reply: {len(content)} chars, reasoning {len(reasoning)} chars, "
+                  f"finish={getattr(choice, 'finish_reason', '')}, usage={getattr(usage, 'total_tokens', '?')}", flush=True)
+            if content:
+                if i:
+                    print(f"[sabhasaar] Sarvam-105B answered on retry {i}", flush=True)
+                return content
+            last = getattr(choice, "finish_reason", "") or ""
+            print(f"[sabhasaar] Sarvam-105B gave an empty answer (finish_reason={last}), retrying", flush=True)
+        raise SarvamError(f"Sarvam-105B returned an empty answer (finish_reason={last}). Try again.")
 
     # ---------- Bulbul ----------
     def speak(self, text: str, language_code: str) -> bytes:
@@ -122,6 +141,19 @@ def parse_json(text: str) -> dict:
         if start == -1 or end <= start:
             raise SarvamError("Model did not return JSON")
         return json.loads(text[start : end + 1])
+
+
+def last_json_object(text: str) -> str | None:
+    """The last complete {...} object in text, or None."""
+    end = text.rfind("}")
+    for start in [i for i, ch in enumerate(text[:end]) if ch == "{"]:
+        try:
+            obj = json.loads(text[start : end + 1])
+            if isinstance(obj, dict):
+                return text[start : end + 1]
+        except json.JSONDecodeError:
+            continue
+    return None
 
 
 def split_for_tts(text: str, limit: int = 1800) -> list[str]:

@@ -83,7 +83,8 @@ def minutes_messages(transcript: str, meta: dict, lang_name: str, partial_note: 
         "Each transcript line looks like [#12 | 00:13:45 | S2 Name] text, where #12 is the segment id. "
         "Rules: use only what is in the transcript; never invent decisions, names, numbers or dates. "
         "Every item must cite the segment ids it comes from in `refs` (a list of integers), so a listener can jump to that moment. "
-        "Attribute statements to speakers. Stay neutral on political content. "
+        "Attribute statements to speakers by name or role when known (the Sarpanch, Kamla Devi, the Minister), otherwise say 'a speaker'. "
+        "Never write transcript labels like S1 or Speaker 1 in the text. Stay neutral on political content. "
         + _lang_line(lang_name)
         + " Reply with one JSON object only."
     )
@@ -117,7 +118,7 @@ def answer_messages(question: str, context: str, scope_note: str, history: list[
         "You are SabhaSaar. You help people who could not attend a meeting understand what happened in it. "
         f"The records are from {mt['context']} {scope_note}"
         "Answer only from the records given. If the meeting did not discuss it, say so plainly and set status to not_discussed. "
-        "Be short and concrete: who said it, what was decided, numbers and dates as stated. "
+        "Be short and concrete: who said it (by name or role, never labels like S1), what was decided, numbers and dates as stated. "
         "Speak like you are explaining to a neighbour, in simple words, 2-5 sentences. "
         "Cite the segment refs you used exactly as they appear in the records (for example \"#14\" or \"M2#14\"). "
         "Stay neutral on political content and do not give legal advice. "
@@ -126,14 +127,14 @@ def answer_messages(question: str, context: str, scope_note: str, history: list[
         '"language_code": BCP-47 code of the answer language such as hi-IN or ta-IN, '
         '"follow_ups": [2 short follow-up questions in the same language]}'
     )
-    msgs = [{"role": "system", "content": system},
-            {"role": "user", "content": f"RECORDS:\n{context}"},
-            {"role": "assistant", "content": "{\"answer\": \"I have read the records. Ask your question.\", \"refs\": [], \"status\": \"answered\"}"}]
-    for turn in history[-4:]:
-        msgs.append({"role": "user", "content": turn["question"]})
-        msgs.append({"role": "assistant", "content": json.dumps({"answer": turn["answer"]}, ensure_ascii=False)})
-    msgs.append({"role": "user", "content": question})
-    return msgs
+    # One plain system + user turn. An earlier version pre-filled a fake assistant reply, which made
+    # sarvam-105b in JSON mode return empty answers.
+    earlier = ""
+    if history:
+        earlier = "EARLIER QUESTIONS IN THIS CONVERSATION:\n" + "\n".join(
+            f"Q: {t['question']}\nA: {t['answer']}" for t in history[-3:]) + "\n\n"
+    user = f"RECORDS:\n{context}\n\n{earlier}QUESTION: {question}\n\nReply with the JSON object only."
+    return [{"role": "system", "content": system}, {"role": "user", "content": user}]
 
 
 def pick_refs_messages(question: str, minutes: dict) -> list[dict]:
