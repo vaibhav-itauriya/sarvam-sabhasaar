@@ -330,8 +330,10 @@ def ask(svc, mid: str, question: str, language: str | None = None, scope: str = 
         if seg:
             refs.append({"meeting_id": target, "seg": seg["id"], "start": seg["start"],
                          "label": hms(seg["start"]) if target == mid else f"{labels[target]} {hms(seg['start'])}"})
+    # refs belong in the stamps, not in the text that is shown and read aloud
+    data["answer"] = strip_inline_refs(data.get("answer") or "")
     if language:
-        data["answer"] = ensure_language(svc, data.get("answer") or "", language)
+        data["answer"] = ensure_language(svc, data["answer"], language)
     answer = {
         "question": question,
         "answer": data.get("answer") or "",
@@ -344,6 +346,12 @@ def ask(svc, mid: str, question: str, language: str | None = None, scope: str = 
     }
     store.append_qa(mid, answer)
     return answer
+
+
+def strip_inline_refs(text: str) -> str:
+    text = re.sub(r"\s*[\(\[]\s*(?:M\d+\s*)?#\d+(?:\s*[,;]\s*(?:M\d+\s*)?#\d+)*\s*[\)\]]", "", text)
+    text = re.sub(r"\s*(?:M\d+\s*)?#\d+\b", "", text)
+    return re.sub(r"\s+([.,!?।])", r"\1", text).strip()
 
 
 def answer_language(data: dict, language: str | None) -> str:

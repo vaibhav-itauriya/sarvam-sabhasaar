@@ -122,7 +122,7 @@ def answer_messages(question: str, context: str, scope_note: str, history: list[
         "Answer only from the records given. If the meeting did not discuss it, say so plainly and set status to not_discussed. "
         "Be short and concrete: who said it (by name or role, never labels like S1), what was decided, numbers and dates as stated. "
         "Speak like you are explaining to a neighbour, in simple words, 2-5 sentences. "
-        "Cite the segment refs you used exactly as they appear in the records (for example \"#14\" or \"M2#14\"). "
+        "Put the segment refs you used in the refs list, exactly as they appear in the records (for example \"#14\" or \"M2#14\"), and never inside the answer text. "
         "Stay neutral on political content and do not give legal advice. "
         f"{lang_rule} Reply with JSON only: "
         '{"answer": str, "refs": [str], "status": "answered" | "not_discussed" | "unclear", '

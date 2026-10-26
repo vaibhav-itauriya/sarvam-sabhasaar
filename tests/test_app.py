@@ -238,3 +238,9 @@ def test_brief_in_wrong_language_is_translated_and_old_cache_dropped(client, mon
     monkeypatch.setattr(FAKE, "chat", chat)
     b = client.post(f"/api/meetings/{mid}/brief", json={"language": "ta-IN"}).json()
     assert b.get("script", "").startswith("சாலைக்கு") and b["audio_url"], b
+
+
+def test_strip_inline_refs():
+    from app.pipeline import strip_inline_refs
+    assert strip_inline_refs("டேங்கர் அனுப்பப்படும் (#6, #7).") == "டேங்கர் அனுப்பப்படும்."
+    assert strip_inline_refs("Road deferred #21 to November [M2#4].") == "Road deferred to November."
